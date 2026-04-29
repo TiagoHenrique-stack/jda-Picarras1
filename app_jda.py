@@ -8,7 +8,7 @@ import io
 
 st.set_page_config(page_title="JDA PIÇARRAS", layout="wide", initial_sidebar_state="collapsed")
 
-# CSS NEON VERDE PRETO COM BOTÕES IGUAIS
+# CSS NEON VERDE PRETO - STREAMLIT 1.36
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@700;800;900&display=swap');
@@ -50,8 +50,8 @@ st.markdown("""
     text-transform: uppercase!important;
 }
 
-/* BOTÕES IGUAIS */
-.button-equal.stButton > button {
+/* BOTÕES STREAMLIT 1.36 */
+div[data-testid="stButton"] > button {
     background: #1A1A1A!important;
     border: 1px solid #32FF7E!important;
     border-radius: 0px!important;
@@ -66,7 +66,7 @@ st.markdown("""
     transition: all 0.3s ease!important;
 }
 
-.button-equal.stButton > button:hover {
+div[data-testid="stButton"] > button:hover {
     background: #32FF7E!important;
     color: #000!important;
     box-shadow: 0 0 25px rgba(50, 255, 126, 0.5)!important;
@@ -189,6 +189,14 @@ def init_db():
         chave TEXT PRIMARY KEY,
         valor TEXT
     )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS progressao (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        graduacao TEXT,
+        tipo TEXT,
+        nome TEXT,
+        ordem INTEGER DEFAULT 0
+    )''')
+
     c.execute("INSERT OR IGNORE INTO configuracoes (chave, valor) VALUES ('taxa_cadastro', '50.00')")
     c.execute("INSERT OR IGNORE INTO configuracoes (chave, valor) VALUES ('chave_pix', 'jda.picaras@pix.com.br')")
 
@@ -197,7 +205,8 @@ def init_db():
         c.execute("INSERT INTO alunos (nome, email, senha, role, status, taxa_cadastro_paga) VALUES (?,?,?,?,?,?)",
                   ('Mestre JDA', 'admin@jda.com', hash_senha('admin123'), 'admin', 'ativo', 1))
 
-    if not c.fetchone():
+    c.execute("SELECT COUNT(*) FROM horarios")
+    if c.fetchone()[0] == 0:
         horarios_iniciais = [
             ('SEGUNDA', 'INFANTIL', '18:00 - 19:00', 1), ('SEGUNDA', 'ADULTO', '19:00 - 20:30', 2),
             ('QUARTA', 'INFANTIL', '18:00 - 19:00', 3), ('QUARTA', 'ADULTO', '19:00 - 20:30', 4),
@@ -280,7 +289,6 @@ if st.session_state.pagina == 'site':
 
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("ENTRAR", use_container_width=True):
                 conn = sqlite3.connect(DB)
                 c = conn.cursor()
@@ -290,20 +298,19 @@ if st.session_state.pagina == 'site':
                     if usuario[6] == 'pendente':
                         st.error("SUA CONTA AINDA NÃO FOI APROVADA PELO MESTRE JDA!")
                     else:
+                        if usuario[3] == hash_senha(f"{email.split('@')[0]}JDA{datetime.now().year}"):
+                            st.session_state.forcar_troca_senha = True
                         st.session_state.usuario = usuario
                         st.session_state.pagina = 'admin' if usuario[11] == 'admin' else 'aluno'
                         st.rerun()
                 else:
                     st.error("EMAIL OU SENHA INCORRETOS!")
                 conn.close()
-            st.markdown('</div>', unsafe_allow_html=True)
 
         with col2:
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("ESQUECI SENHA", use_container_width=True):
                 st.session_state.pagina = 'esqueci_senha'
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
     elif aba == "REGISTRO":
         st.markdown('<div class="section-title">REGISTRO DE ALUNO</div>', unsafe_allow_html=True)
@@ -312,7 +319,6 @@ if st.session_state.pagina == 'site':
         senha = st.text_input("SENHA", type="password")
         telefone = st.text_input("TELEFONE WHATSAPP")
 
-        st.markdown('<div class="button-equal">', unsafe_allow_html=True)
         if st.button("SOLICITAR CADASTRO", use_container_width=True):
             if nome and email and senha and telefone:
                 conn = sqlite3.connect(DB)
@@ -327,7 +333,6 @@ if st.session_state.pagina == 'site':
                 conn.close()
             else:
                 st.error("PREENCHA TODOS OS CAMPOS!")
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # ===== ESQUECI SENHA =====
 elif st.session_state.pagina == 'esqueci_senha':
@@ -335,7 +340,6 @@ elif st.session_state.pagina == 'esqueci_senha':
     st.markdown('<div class="section-title">RECUPERAR SENHA</div>', unsafe_allow_html=True)
 
     email_recuperar = st.text_input("DIGITE SEU EMAIL CADASTRADO")
-    st.markdown('<div class="button-equal">', unsafe_allow_html=True)
     if st.button("GERAR SENHA TEMPORÁRIA"):
         if email_recuperar:
             conn = sqlite3.connect(DB)
@@ -353,13 +357,10 @@ elif st.session_state.pagina == 'esqueci_senha':
             conn.close()
         else:
             st.error("DIGITE SEU EMAIL!")
-    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="button-equal">', unsafe_allow_html=True)
     if st.button("VOLTAR AO LOGIN"):
         st.session_state.pagina = 'site'
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)# ===== PAINEL DO ADMIN =====
+        st.rerun()# ===== PAINEL DO ADMIN =====
 elif st.session_state.pagina == 'admin':
     usuario = st.session_state.usuario
     st.markdown(f'<div class="logo-header" style="font-size:64px;"><span class="logo-jda">JDA</span> <span class="logo-picaras">PIÇARRAS</span></div>', unsafe_allow_html=True)
@@ -368,15 +369,6 @@ elif st.session_state.pagina == 'admin':
 
     conn = sqlite3.connect(DB)
     c = conn.cursor()
-
-    c.execute('''CREATE TABLE IF NOT EXISTS progressao (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        graduacao TEXT,
-        tipo TEXT,
-        nome TEXT,
-        ordem INTEGER DEFAULT 0
-    )''')
-
     aba = st.radio("", ["ALUNOS PENDENTES", "ALUNOS ATIVOS", "GRADUAÇÃO", "PROGRESSÃO", "HORÁRIOS", "LOJA", "PEDIDOS", "CONFIGURAÇÕES"], horizontal=True)
 
     if aba == "ALUNOS PENDENTES":
@@ -397,7 +389,6 @@ elif st.session_state.pagina == 'admin':
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.markdown('<div class="button-equal">', unsafe_allow_html=True)
                     if st.button(f"APROVAR", key=f"aprov_{aluno[0]}", use_container_width=True):
                         c.execute("UPDATE alunos SET status = 'ativo', taxa_cadastro_paga =? WHERE id =?", (1 if taxa_paga else 0, aluno[0]))
                         conn.commit()
@@ -409,15 +400,12 @@ elif st.session_state.pagina == 'admin':
                             link_whatsapp = f"https://wa.me/{numero_limpo}?text={mensagem.replace('\n', '%0A')}"
                             st.markdown(f'[ENVIAR WHATSAPP]({link_whatsapp})', unsafe_allow_html=True)
                         st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
                 with col2:
-                    st.markdown('<div class="button-equal">', unsafe_allow_html=True)
                     if st.button(f"REJEITAR", key=f"rej_{aluno[0]}", use_container_width=True):
                         c.execute("DELETE FROM alunos WHERE id =?", (aluno[0],))
                         conn.commit()
                         st.warning("ALUNO REJEITADO!")
                         st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.info("NENHUM ALUNO PENDENTE")
 
@@ -437,13 +425,11 @@ elif st.session_state.pagina == 'admin':
             </div>
             """, unsafe_allow_html=True)
             paga_mensal = st.checkbox("PAGA MENSALIDADE", value=bool(aluno[9]), key=f"mens_{aluno[0]}")
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("SALVAR", key=f"save_mens_{aluno[0]}"):
                 c.execute("UPDATE alunos SET paga_mensalidade =? WHERE id =?", (1 if paga_mensal else 0, aluno[0]))
                 conn.commit()
                 st.success("ATUALIZADO!")
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
     elif aba == "PROGRESSÃO":
         st.markdown('<div class="section-title">CONFIGURAR PROGRESSÃO POR GRADUAÇÃO</div>', unsafe_allow_html=True)
@@ -455,7 +441,6 @@ elif st.session_state.pagina == 'admin':
         col1, col2, col3 = st.columns([2,2,1])
         tipo_item = col1.selectbox("TIPO", ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"])
         nome_item = col2.text_input("NOME DO ITEM", placeholder="Ex: Meia-lua de frente")
-        st.markdown('<div class="button-equal">', unsafe_allow_html=True)
         if col3.button("ADICIONAR"):
             if nome_item:
                 c.execute("SELECT MAX(ordem) FROM progressao WHERE graduacao=?", (grad_selecionada,))
@@ -465,7 +450,6 @@ elif st.session_state.pagina == 'admin':
                 conn.commit()
                 st.success("ITEM ADICIONADO!")
                 st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown(f"### ITENS PARA {grad_selecionada.upper()}")
         tipos = ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"]
@@ -500,13 +484,11 @@ elif st.session_state.pagina == 'admin':
                     <div style="font-family:'Montserrat'; color:#ccc;">Graduação Atual: {grad_atual} → Próxima: {proxima_grad}</div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.markdown('<div class="button-equal">', unsafe_allow_html=True)
                 if st.button(f"PROMOVER PARA {proxima_grad.upper()}", key=f"prom_{aluno[0]}", use_container_width=True):
                     c.execute("UPDATE alunos SET graduacao =? WHERE id =?", (proxima_grad, aluno[0]))
                     conn.commit()
                     st.success(f"{aluno[1]} PROMOVIDO PARA {proxima_grad}!")
                     st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div style="padding:25px 0; border-bottom:1px solid #333;">
@@ -522,7 +504,6 @@ elif st.session_state.pagina == 'admin':
             novo_dia = col1.text_input("DIA")
             nova_turma = col2.text_input("TURMA")
             novo_horario = col3.text_input("HORÁRIO")
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("ADICIONAR"):
                 if novo_dia and nova_turma and novo_horario:
                     c.execute("SELECT MAX(ordem) FROM horarios")
@@ -532,7 +513,6 @@ elif st.session_state.pagina == 'admin':
                     conn.commit()
                     st.success("HORÁRIO ADICIONADO!")
                     st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
         c.execute("SELECT * FROM horarios ORDER BY ordem ASC")
         horarios = c.fetchall()
@@ -548,19 +528,15 @@ elif st.session_state.pagina == 'admin':
             dia_edit = col1.text_input("DIA", value=h[1], key=f"dia_{h[0]}")
             turma_edit = col2.text_input("TURMA", value=h[2], key=f"turma_{h[0]}")
             horario_edit = col3.text_input("HORÁRIO", value=h[3], key=f"hor_{h[0]}")
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("SALVAR", key=f"save_{h[0]}", use_container_width=True):
                 c.execute("UPDATE horarios SET dia=?, turma=?, horario=? WHERE id=?", (dia_edit, turma_edit, horario_edit, h[0]))
                 conn.commit()
                 st.success("ATUALIZADO!")
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("EXCLUIR", key=f"del_{h[0]}", use_container_width=True):
                 c.execute("DELETE FROM horarios WHERE id =?", (h[0],))
                 conn.commit()
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
     elif aba == "LOJA":
         st.markdown('<div class="section-title">GESTÃO DA LOJA</div>', unsafe_allow_html=True)
@@ -571,7 +547,6 @@ elif st.session_state.pagina == 'admin':
             estoque_prod = st.number_input("ESTOQUE", min_value=0, step=1)
             descricao_prod = st.text_area("DESCRIÇÃO")
             imagem_prod = st.file_uploader("IMAGEM", type=['jpg', 'jpeg', 'png'])
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("ADICIONAR PRODUTO"):
                 imagem_bytes = resize_image(imagem_prod) if imagem_prod else None
                 c.execute("SELECT MAX(ordem) FROM produtos")
@@ -581,7 +556,6 @@ elif st.session_state.pagina == 'admin':
                 conn.commit()
                 st.success("PRODUTO ADICIONADO!")
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
         c.execute("SELECT * FROM produtos ORDER BY ordem ASC")
         produtos = c.fetchall()
@@ -600,20 +574,16 @@ elif st.session_state.pagina == 'admin':
             preco_edit = col2.number_input("PREÇO", value=float(prod[3]), key=f"pp_{prod[0]}")
             estoque_edit = col1.number_input("ESTOQUE", value=int(prod[4]), key=f"pe_{prod[0]}")
             ativo_edit = col2.checkbox("ATIVO", value=bool(prod[7]), key=f"pa_{prod[0]}")
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("SALVAR", key=f"ps_{prod[0]}", use_container_width=True):
                 c.execute("UPDATE produtos SET nome=?, preco=?, estoque=?, ativo=? WHERE id=?",
                           (nome_edit, preco_edit, estoque_edit, 1 if ativo_edit else 0, prod[0]))
                 conn.commit()
                 st.success("ATUALIZADO!")
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("EXCLUIR", key=f"pdel_{prod[0]}", use_container_width=True):
                 c.execute("DELETE FROM produtos WHERE id =?", (prod[0],))
                 conn.commit()
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
     elif aba == "PEDIDOS":
         st.markdown('<div class="section-title">PEDIDOS RECEBIDOS</div>', unsafe_allow_html=True)
@@ -635,13 +605,11 @@ elif st.session_state.pagina == 'admin':
                 st.write(f'- {item[1]}x {item[0]} - R$ {item[2]:.2f}')
             novo_status = st.selectbox("STATUS", ["pendente", "pago", "enviado", "entregue"],
                                        index=["pendente", "pago", "enviado", "entregue"].index(pedido[4]), key=f"st_{pedido[0]}")
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("ATUALIZAR", key=f"stb_{pedido[0]}"):
                 c.execute("UPDATE pedidos SET status =? WHERE id =?", (novo_status, pedido[0]))
                 conn.commit()
                 st.success("STATUS ATUALIZADO!")
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
     elif aba == "CONFIGURAÇÕES":
         st.markdown('<div class="section-title">CONFIGURAÇÕES DO SISTEMA</div>', unsafe_allow_html=True)
@@ -649,19 +617,15 @@ elif st.session_state.pagina == 'admin':
         nova_taxa = st.number_input("VALOR DA TAXA DE CADASTRO (R$)", value=taxa_atual, min_value=0.0, step=5.0)
         chave_pix_atual = get_config('chave_pix')
         nova_chave_pix = st.text_input("CHAVE PIX", value=chave_pix_atual)
-        st.markdown('<div class="button-equal">', unsafe_allow_html=True)
         if st.button("SALVAR CONFIGURAÇÕES"):
             set_config('taxa_cadastro', nova_taxa)
             set_config('chave_pix', nova_chave_pix)
             st.success("CONFIGURAÇÕES SALVAS!")
-        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="button-equal">', unsafe_allow_html=True)
     if st.button("SAIR"):
         st.session_state.usuario = None
         st.session_state.pagina = 'site'
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
     conn.close()
 
 # ===== PAINEL DO ALUNO =====
@@ -674,7 +638,6 @@ elif st.session_state.pagina == 'aluno':
         st.markdown('<div class="section-title">TROCAR SENHA TEMPORÁRIA</div>', unsafe_allow_html=True)
         nova_senha = st.text_input("NOVA SENHA", type="password")
         confirmar_senha = st.text_input("CONFIRMAR SENHA", type="password")
-        st.markdown('<div class="button-equal">', unsafe_allow_html=True)
         if st.button("SALVAR NOVA SENHA"):
             if nova_senha and nova_senha == confirmar_senha:
                 c.execute("UPDATE alunos SET senha =? WHERE id =?", (hash_senha(nova_senha), usuario[0]))
@@ -686,7 +649,6 @@ elif st.session_state.pagina == 'aluno':
                 st.rerun()
             else:
                 st.error("SENHAS NÃO CONFEREM!")
-        st.markdown('</div>', unsafe_allow_html=True)
         conn.close()
         st.stop()
 
@@ -750,11 +712,9 @@ elif st.session_state.pagina == 'aluno':
                 <div style="font-family:'Montserrat'; color:#999;">{prod[5]}</div>
             </div>
             """, unsafe_allow_html=True)
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("ADICIONAR AO CARRINHO", key=f"cart_{prod[0]}", use_container_width=True):
                 st.session_state.carrinho.append({'id': prod[0], 'nome': prod[1], 'preco': prod[3]})
                 st.success(f"{prod[1]} ADICIONADO AO CARRINHO!")
-            st.markdown('</div>', unsafe_allow_html=True)
 
         if st.session_state.carrinho:
             st.markdown("### CARRINHO")
@@ -762,7 +722,6 @@ elif st.session_state.pagina == 'aluno':
             for item in st.session_state.carrinho:
                 st.write(f"- {item['nome']} - R$ {item['preco']:.2f}")
             st.write(f"**TOTAL: R$ {total:.2f}**")
-            st.markdown('<div class="button-equal">', unsafe_allow_html=True)
             if st.button("FINALIZAR PEDIDO"):
                 data_pedido = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 c.execute("INSERT INTO pedidos (aluno_id, data_pedido, total, status) VALUES (?,?,?,?)",
@@ -775,7 +734,6 @@ elif st.session_state.pagina == 'aluno':
                 st.session_state.carrinho = []
                 st.success("PEDIDO REALIZADO! ENVIE O COMPROVANTE DO PIX PARA O MESTRE JDA.")
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
     elif aba == "MEUS PEDIDOS":
         st.markdown('<div class="section-title">MEUS PEDIDOS</div>', unsafe_allow_html=True)
@@ -794,10 +752,8 @@ elif st.session_state.pagina == 'aluno':
             for item in c.fetchall():
                 st.write(f'- {item[1]}x {item[0]} - R$ {item[2]:.2f}')
 
-    st.markdown('<div class="button-equal">', unsafe_allow_html=True)
     if st.button("SAIR"):
         st.session_state.usuario = None
         st.session_state.pagina = 'site'
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
     conn.close()
