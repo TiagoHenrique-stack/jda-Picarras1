@@ -150,17 +150,20 @@ div[data-testid="stExpander"] > div > div > p {
 """, unsafe_allow_html=True)
 
 # FIREBASE INIT
-if 'firebase_initialized' not in st.session_state:
+from firebase_admin import get_app, _apps
+
+if not _apps:
     try:
         if 'firebase_credentials' in st.secrets:
-            cred = credentials.Certificate(dict(st.secrets['firebase_credentials']))
+            cred = credentials.Certificate(dict(st.session_state.firebase_credentials)) if 'firebase_credentials' in st.session_state else credentials.Certificate(dict(st.secrets['firebase_credentials']))
         else:
             cred = credentials.Certificate("firebase_key.json")
         initialize_app(cred)
-        st.session_state.firebase_initialized = True
     except Exception as e:
         st.error(f"ERRO FIREBASE: {e}")
         st.stop()
+else:
+    app = get_app()
 
 db = firestore.client()
 col_alunos = db.collection('alunos')
