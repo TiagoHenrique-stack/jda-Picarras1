@@ -1,3 +1,4 @@
 streamlit
 firebase-admin
-psycopg2-binary
+pandas
+plotly
