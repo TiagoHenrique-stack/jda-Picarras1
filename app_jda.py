@@ -10,7 +10,7 @@ st.set_page_config(page_title="JDA PIÇARRAS", layout="wide", initial_sidebar_st
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap');
 * { font-family: 'Montserrat', sans-serif; }
 .stApp { background: #0A0A0A; color: #FFFFFF; }
 .stTextInput > div > div > input,.stTextArea > div > div > textarea,.stSelectbox > div > div > select,.stNumberInput > div > div > input {
@@ -20,7 +20,7 @@ st.markdown("""
 .stTextInput > div > div > input:focus,.stTextArea > div > div > textarea:focus,.stSelectbox > div > div > select:focus,.stNumberInput > div > div > input:focus {
     border: 1px solid #32FF7E!important; box-shadow: 0 0 15px rgba(50, 255, 126, 0.3)!important; outline: none!important;
 }
-.stTextInput label,.stTextArea label,.stSelectbox label,.stNumberInput label,.stRadio label,.stCheckbox label {
+.stTextInput label,.stTextArea label,.stSelectbox label,.stNumberInput label,.stCheckbox label {
     color: #FFFFFF!important; font-family: 'Montserrat'!important; font-weight: 600!important; font-size: 12px!important;
     letter-spacing: 1.5px!important; text-transform: uppercase!important;
 }
@@ -33,16 +33,18 @@ st.markdown("""
     background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%)!important; color: #000!important;
     box-shadow: 0 0 30px rgba(50, 255, 126, 0.5)!important; border: 2px solid #32FF7E!important;
 }
-.stRadio > div { gap: 40px!important; justify-content: center!important; flex-direction: row!important; }
-.stRadio > div > label {
-    font-family: 'Montserrat'!important; font-weight: 600!important; font-size: 12px!important; letter-spacing: 2px!important;
-    text-transform: uppercase!important; color: #CCCCCC!important; padding: 8px 0!important;
-}
-.stRadio > div > label[data-selected="true"] { color: #32FF7E!important; text-shadow: 0 0 10px rgba(50, 255, 126, 0.5)!important; }
-.stRadio > div > label > div:first-child { border-color: #32FF7E!important; }
 .neon-line { height: 3px; background: linear-gradient(90deg, transparent, #32FF7E, #FFD700, transparent); box-shadow: 0 0 15px #32FF7E; margin: 30px auto; }
 .section-title { font-family: 'Playfair Display', serif!important; font-size: 48px!important; font-weight: 700!important; color: #FFFFFF!important;
     text-align: center!important; margin: 50px 0 30px 0!important; letter-spacing: 3px!important; }
+.hero-title {
+    font-family:'Playfair Display'; font-size:72px; font-weight:900; letter-spacing: 6px; margin-bottom: 25px;
+    background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text; text-shadow: 0 0 40px rgba(50,255,126,0.5);
+    white-space: nowrap;
+}
+@media (max-width: 768px) {
+   .hero-title { font-size: 48px; white-space: normal; letter-spacing: 3px; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -122,7 +124,7 @@ def resize_image(uploaded_file):
 init_db()
 
 if 'pagina' not in st.session_state:
-    st.session_state.pagina = 'site'
+    st.session_state.pagina = 'home'
 if 'usuario' not in st.session_state:
     st.session_state.usuario = None
 if 'carrinho' not in st.session_state:
@@ -130,125 +132,97 @@ if 'carrinho' not in st.session_state:
 if 'forcar_troca_senha' not in st.session_state:
     st.session_state.forcar_troca_senha = False
 
-if st.session_state.pagina == 'site':
-    aba = st.radio("", ["HOME", "LOGIN", "REGISTRO"], horizontal=True)
-
-    if aba == "HOME":
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, rgba(0,0,0,0.92) 0%, rgba(10,10,10,0.98) 100%),
-                    url('https://images.unsplash.com/photo-1544552866-d3ed42536cfd?q=80&w=2070') center/cover;
-                    padding: 100px 40px 120px 40px; margin: -2rem -1rem 0 -1rem; text-align: center;">
-            <div style="font-family:'Playfair Display'; font-size:88px; font-weight:900; letter-spacing: 5px; margin-bottom: 15px;
-                        background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%); -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent; background-clip: text; text-shadow: 0 0 40px rgba(50,255,126,0.3);">
-                JDA PIÇARRAS
-            </div>
-            <div style="font-family:'Montserrat'; font-size:16px; color:#CCCCCC; letter-spacing: 6px; text-transform: uppercase; margin-bottom: 40px;">
-                ACADEMIA DE CAPOEIRA
-            </div>
-            <div style="font-family:'Montserrat'; font-size:18px; color:#AAAAAA; max-width:750px; margin: 0 auto 50px auto; line-height: 1.9; letter-spacing: 0.5px;">
-                Tradição, disciplina e cultura em cada movimento. Formando capoeiristas e cidadãos através da arte da roda.
-            </div>
+if st.session_state.pagina == 'home':
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(10,10,10,1) 100%),
+                url('https://images.unsplash.com/photo-1544552866-d3ed42536cfd?q=80&w=2070') center/cover;
+                padding: 160px 40px 180px 40px; margin: -2rem -1rem 0 -1rem; text-align: center; border-bottom: 3px solid #32FF7E;">
+        <div class="hero-title">JDA PIÇARRAS</div>
+        <div style="font-family:'Montserrat'; font-size:20px; color:#CCCCCC; letter-spacing: 10px; text-transform: uppercase; margin-bottom: 60px;">
+            ACADEMIA PREMIUM DE CAPOEIRA
         </div>
-        """, unsafe_allow_html=True)
-
-        col1, col2, col3 = st.columns([1,2,1])
-        with col2:
-            col_btn1, col_btn2 = st.columns(2)
-            with col_btn1:
-                if st.button("SE INSCREVER", use_container_width=True, key="btn_inscrever"):
-                    st.session_state.pagina = 'site'
-                    st.rerun()
-            with col_btn2:
-                if st.button("PORTAL DO ALUNO", use_container_width=True, key="btn_portal"):
-                    st.session_state.pagina = 'site'
-                    st.rerun()
-
-        st.markdown("""
-        <div style="padding: 80px 40px; background: #0A0A0A;">
-            <div style="font-family:'Playfair Display'; font-size:48px; color:#FFFFFF; font-weight:700; text-align: center;
-                        margin-bottom: 15px; letter-spacing: 3px;">HORÁRIOS DE TREINO</div>
-            <div class="neon-line" style="width:120px; margin: 0 auto 60px auto;"></div>
+        <div style="font-family:'Montserrat'; font-size:22px; color:#AAAAAA; max-width:850px; margin: 0 auto 70px auto;
+                    line-height: 2.2; letter-spacing: 1px; font-weight: 400;">
+            Tradição, disciplina e cultura em cada movimento. Formando capoeiristas e cidadãos através da arte da roda.
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
-        conn = sqlite3.connect(DB)
-        c = conn.cursor()
-        c.execute("SELECT * FROM horarios ORDER BY ordem ASC")
-        horarios = c.fetchall()
-        conn.close()
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("SE INSCREVER", use_container_width=True, key="btn_inscrever"):
+                st.session_state.pagina = 'registro'
+                st.rerun()
+        with col_btn2:
+            if st.button("PORTAL DO ALUNO", use_container_width=True, key="btn_portal"):
+                st.session_state.pagina = 'login'
+                st.rerun()
 
-        dias = {}
-        for h in horarios:
-            if h[1] not in dias:
-                dias[h[1]] = []
-            dias[h[1]].append(h)
+    st.markdown("""
+    <div style="padding: 120px 40px; background: #0A0A0A;">
+        <div style="font-family:'Playfair Display'; font-size:60px; color:#FFFFFF; font-weight:700; text-align: center;
+                    margin-bottom: 25px; letter-spacing: 5px;">HORÁRIOS DE TREINOS</div>
+        <div class="neon-line" style="width:180px; margin: 0 auto 90px auto;"></div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        cols = st.columns(3)
-        col_index = 0
-        for dia, aulas in dias.items():
-            with cols[col_index % 3]:
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    c.execute("SELECT * FROM horarios ORDER BY ordem ASC")
+    horarios = c.fetchall()
+    conn.close()
+
+    dias = {}
+    for h in horarios:
+        if h[1] not in dias:
+            dias[h[1]] = []
+        dias[h[1]].append(h)
+
+    cols = st.columns(3)
+    col_index = 0
+    for dia, aulas in dias.items():
+        with cols[col_index % 3]:
+            st.markdown(f"""
+            <div style="background: linear-gradient(180deg, #1A1A1A 0%, #0F0F0F 100%); border: 2px solid #32FF7E; padding: 45px;
+                        margin-bottom: 45px; box-shadow: 0 0 30px rgba(50,255,126,0.18);">
+                <div style="font-family:'Montserrat'; font-size:16px; background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%);
+                            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+                            letter-spacing: 5px; font-weight: 800; margin-bottom: 35px; text-align: center;">
+                    {dia.upper()}
+                </div>
+            """, unsafe_allow_html=True)
+            for aula in aulas:
                 st.markdown(f"""
-                <div style="background: linear-gradient(180deg, #1A1A1A 0%, #0F0F0F 100%); border: 2px solid #32FF7E; padding: 35px;
-                            margin-bottom: 35px; box-shadow: 0 0 20px rgba(50,255,126,0.1);">
-                    <div style="font-family:'Montserrat'; font-size:14px; background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%);
-                                -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-                                letter-spacing: 3px; font-weight: 700; margin-bottom: 25px; text-align: center;">
-                        {dia.upper()}
+                <div style="margin-bottom: 30px; text-align: center;">
+                    <div style="font-family:'Playfair Display'; font-size:36px; color:#FFFFFF; font-weight:700; margin-bottom: 12px;">
+                        {aula[2]}
                     </div>
+                    <div style="font-family:'Montserrat'; font-size:18px; color:#CCCCCC; letter-spacing: 2px;">
+                        {aula[3]}
+                    </div>
+                </div>
                 """, unsafe_allow_html=True)
-                for aula in aulas:
-                    st.markdown(f"""
-                    <div style="margin-bottom: 22px; text-align: center;">
-                        <div style="font-family:'Playfair Display'; font-size:26px; color:#FFFFFF; font-weight:700; margin-bottom: 8px;">
-                            {aula[2]}
-                        </div>
-                        <div style="font-family:'Montserrat'; font-size:16px; color:#CCCCCC; letter-spacing: 1px;">
-                            {aula[3]}
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-            col_index += 1
+            st.markdown("</div>", unsafe_allow_html=True)
+        col_index += 1
 
-        st.markdown("""
-        <div style="background: #000; border-top: 3px solid #32FF7E; padding: 60px 40px 30px 40px; margin: 80px -1rem -2rem -1rem;">
-            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; max-width: 1200px; margin: 0 auto;">
-                <div style="flex: 1; min-width: 250px;">
-                    <div style="font-family:'Playfair Display'; font-size:32px; font-weight:900;
-                                background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%); -webkit-background-clip: text;
-                                -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 15px;">JDA PIÇARRAS</div>
-                    <div style="font-family:'Montserrat'; font-size:14px; color:#888; line-height: 1.8;">Capoeira é liberdade. Capoeira é vida.</div>
-                </div>
-                <div style="flex: 1; min-width: 250px;">
-                    <div style="font-family:'Montserrat'; font-size:14px; color:#32FF7E; font-weight: 700; letter-spacing: 2px;
-                                margin-bottom: 15px; text-transform: uppercase;">CONTATO</div>
-                    <div style="font-family:'Montserrat'; font-size:14px; color:#888; line-height: 2;">
-                        Piçarras - SC<br>WhatsApp: (47) 99999-9999<br>Instagram: @jdapicaras
-                    </div>
-                </div>
-                <div style="flex: 1; min-width: 250px;">
-                    <div style="font-family:'Montserrat'; font-size:14px; color:#32FF7E; font-weight: 700; letter-spacing: 2px;
-                                margin-bottom: 15px; text-transform: uppercase;">HORÁRIOS</div>
-                    <div style="font-family:'Montserrat'; font-size:14px; color:#888; line-height: 2;">
-                        Seg / Qua / Sex<br>Infantil: 18h às 19h<br>Adulto: 19h às 20h30
-                    </div>
-                </div>
-            </div>
-            <div style="border-top: 1px solid #222; margin-top: 50px; padding-top: 30px; text-align: center;">
-                <div style="font-family:'Montserrat'; font-size:12px; color:#555; letter-spacing: 1.5px;">
-                    © 2026 JDA PIÇARRAS - TODOS OS DIREITOS RESERVADOS
-                </div>
-            </div>
+    st.markdown("""
+    <div style="background: #000; border-top: 1px solid #222; padding: 40px; margin: 100px -1rem -2rem -1rem; text-align: center;">
+        <div style="font-family:'Montserrat'; font-size:13px; color:#555; letter-spacing: 3px;">
+            © 2026 JDA PIÇARRAS
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
-    elif aba == "LOGIN":
-        st.markdown('<div class="section-title">LOGIN</div>', unsafe_allow_html=True)
+elif st.session_state.pagina == 'login':
+    st.markdown('<div class="section-title">LOGIN</div>', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
         email = st.text_input("EMAIL")
         senha = st.text_input("SENHA", type="password")
-        col1, col2 = st.columns(2)
-        with col1:
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
             if st.button("ENTRAR", use_container_width=True):
                 conn = sqlite3.connect(DB)
                 c = conn.cursor()
@@ -266,13 +240,15 @@ if st.session_state.pagina == 'site':
                 else:
                     st.error("EMAIL OU SENHA INCORRETOS!")
                 conn.close()
-        with col2:
-            if st.button("ESQUECI SENHA", use_container_width=True):
-                st.session_state.pagina = 'esqueci_senha'
+        with col_btn2:
+            if st.button("VOLTAR", use_container_width=True):
+                st.session_state.pagina = 'home'
                 st.rerun()
 
-    elif aba == "REGISTRO":
-        st.markdown('<div class="section-title">REGISTRO DE ALUNO</div>', unsafe_allow_html=True)
+elif st.session_state.pagina == 'registro':
+    st.markdown('<div class="section-title">REGISTRO DE ALUNO</div>', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
         nome = st.text_input("NOME COMPLETO")
         email = st.text_input("EMAIL")
         senha = st.text_input("SENHA", type="password")
@@ -291,63 +267,11 @@ if st.session_state.pagina == 'site':
                 conn.close()
             else:
                 st.error("PREENCHA TODOS OS CAMPOS!")
+        if st.button("VOLTAR PARA HOME", use_container_width=True):
+            st.session_state.pagina = 'home'
+            st.rerun()
 
-elif st.session_state.pagina == 'esqueci_senha':
-    st.markdown("""
-    <div style="font-family:'Playfair Display'; font-size:64px; font-weight:900; letter-spacing: 5px; margin-bottom: 15px;
-                text-align: center; background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%); -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent; background-clip: text;">JDA PIÇARRAS</div>
-    """, unsafe_allow_html=True)
-    st.markdown('<div class="section-title">RECUPERAR SENHA</div>', unsafe_allow_html=True)
-    email_recuperar = st.text_input("DIGITE SEU EMAIL CADASTRADO")
-    if st.button("GERAR SENHA TEMPORÁRIA"):
-        if email_recuperar:
-            conn = sqlite3.connect(DB)
-            c = conn.cursor()
-            c.execute("SELECT * FROM alunos WHERE email =?", (email_recuperar,))
-            usuario = c.fetchone()
-            if usuario:
-                nova_senha_temp = f"{email_recuperar.split('@')[0]}JDA{datetime.now().year}"
-                c.execute("UPDATE alunos SET senha =? WHERE email =?", (hash_senha(nova_senha_temp), email_recuperar))
-                conn.commit()
-                st.success(f"SENHA TEMPORÁRIA GERADA: {nova_senha_temp}")
-                st.info("USE ESSA SENHA NO LOGIN. VOCÊ SERÁ OBRIGADO A TROCAR NA PRIMEIRA ENTRADA.")
-            else:
-                st.error("EMAIL NÃO ENCONTRADO!")
-            conn.close()
-        else:
-            st.error("DIGITE SEU EMAIL!")
-    if st.button("VOLTAR AO LOGIN"):
-        st.session_state.pagina = 'site'
-        st.rerun()
-        produtos = c.fetchall()
-        for prod in produtos:
-            if prod[6]:
-                st.image(prod[6], width=200)
-            st.markdown(f"""
-            <div style="padding:25px 0; border-bottom:1px solid #333;">
-                <div style="font-family:'Playfair Display'; font-size:28px; color:#32FF7E; text-shadow: 0 0 8px #32FF7E;">{prod[1]}</div>
-                <div style="font-family:'Montserrat'; color:#ccc;">R$ {prod[3]:.2f} | Estoque: {prod[4]}</div>
-                <div style="font-family:'Montserrat'; color:#999;">{prod[5]}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col1, col2 = st.columns([2,1])
-            nome_edit = col1.text_input("NOME", value=prod[1], key=f"pn_{prod[0]}")
-            preco_edit = col2.number_input("PREÇO", value=float(prod[3]), key=f"pp_{prod[0]}")
-            estoque_edit = col1.number_input("ESTOQUE", value=int(prod[4]), key=f"pe_{prod[0]}")
-            ativo_edit = col2.checkbox("ATIVO", value=bool(prod[7]), key=f"pa_{prod[0]}")
-            if st.button("SALVAR", key=f"ps_{prod[0]}", use_container_width=True):
-                c.execute("UPDATE produtos SET nome=?, preco=?, estoque=?, ativo=? WHERE id=?",
-                          (nome_edit, preco_edit, estoque_edit, 1 if ativo_edit else 0, prod[0]))
-                conn.commit()
-                st.success("ATUALIZADO!")
-                st.rerun()
-            if st.button("EXCLUIR", key=f"pdel_{prod[0]}", use_container_width=True):
-                c.execute("DELETE FROM produtos WHERE id =?", (prod[0],))
-                conn.commit()
-                st.rerun()
-
-    elif aba == "PEDIDOS":
+elif aba == "PEDIDOS":
         st.markdown('<div class="section-title">PEDIDOS RECEBIDOS</div>', unsafe_allow_html=True)
         c.execute("""SELECT p.id, a.nome, p.data_pedido, p.total, p.status
                      FROM pedidos p JOIN alunos a ON p.aluno_id = a.id
@@ -355,8 +279,8 @@ elif st.session_state.pagina == 'esqueci_senha':
         pedidos = c.fetchall()
         for pedido in pedidos:
             st.markdown(f"""
-            <div style="padding:25px 0; border-bottom:1px solid #333;">
-                <div style="font-family:'Playfair Display'; font-size:28px; color:#32FF7E; text-shadow: 0 0 8px #32FF7E;">PEDIDO #{pedido[0]} - {pedido[1]}</div>
+            <div style="padding:30px 0; border-bottom:1px solid #333;">
+                <div style="font-family:'Playfair Display'; font-size:32px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">PEDIDO #{pedido[0]} - {pedido[1]}</div>
                 <div style="font-family:'Montserrat'; color:#ccc;">R$ {pedido[3]:.2f} | {pedido[4].upper()} | {pedido[2]}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -373,7 +297,7 @@ elif st.session_state.pagina == 'esqueci_senha':
                 st.success("STATUS ATUALIZADO!")
                 st.rerun()
 
-    elif aba == "CONFIGURAÇÕES":
+elif aba == "CONFIGURAÇÕES":
         st.markdown('<div class="section-title">CONFIGURAÇÕES DO SISTEMA</div>', unsafe_allow_html=True)
         taxa_atual = float(get_config('taxa_cadastro'))
         nova_taxa = st.number_input("VALOR DA TAXA DE CADASTRO (R$)", value=taxa_atual, min_value=0.0, step=5.0)
@@ -384,11 +308,11 @@ elif st.session_state.pagina == 'esqueci_senha':
             set_config('chave_pix', nova_chave_pix)
             st.success("CONFIGURAÇÕES SALVAS!")
 
-    if st.button("SAIR"):
-        st.session_state.usuario = None
-        st.session_state.pagina = 'site'
-        st.rerun()
-    conn.close()
+        if st.button("SAIR", use_container_width=True):
+           st.session_state.usuario = None
+           st.session_state.pagina = 'home'
+           st.rerun()
+        conn.close()
 
 elif st.session_state.pagina == 'aluno':
     usuario = st.session_state.usuario
@@ -396,30 +320,46 @@ elif st.session_state.pagina == 'aluno':
     c = conn.cursor()
 
     if st.session_state.forcar_troca_senha:
+        st.markdown("""
+        <div class="header-nav">
+            <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto;">
+                <div style="font-family:'Playfair Display'; font-size:42px; font-weight:900; letter-spacing: 4px;
+                            background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%); -webkit-background-clip: text;
+                            -webkit-text-fill-color: transparent; background-clip: text;">JDA PIÇARRAS</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         st.markdown('<div class="section-title">TROCAR SENHA TEMPORÁRIA</div>', unsafe_allow_html=True)
-        nova_senha = st.text_input("NOVA SENHA", type="password")
-        confirmar_senha = st.text_input("CONFIRMAR SENHA", type="password")
-        if st.button("SALVAR NOVA SENHA"):
-            if nova_senha and nova_senha == confirmar_senha:
-                c.execute("UPDATE alunos SET senha =? WHERE id =?", (hash_senha(nova_senha), usuario[0]))
-                conn.commit()
-                st.session_state.forcar_troca_senha = False
-                st.success("SENHA ALTERADA! FAÇA LOGIN NOVAMENTE.")
-                st.session_state.usuario = None
-                st.session_state.pagina = 'site'
-                st.rerun()
-            else:
-                st.error("SENHAS NÃO CONFEREM!")
+        col1, col2, col3 = st.columns([1,2,1])
+        with col2:
+            nova_senha = st.text_input("NOVA SENHA", type="password")
+            confirmar_senha = st.text_input("CONFIRMAR SENHA", type="password")
+            if st.button("SALVAR NOVA SENHA", use_container_width=True):
+                if nova_senha and nova_senha == confirmar_senha:
+                    c.execute("UPDATE alunos SET senha =? WHERE id =?", (hash_senha(nova_senha), usuario[0]))
+                    conn.commit()
+                    st.session_state.forcar_troca_senha = False
+                    st.success("SENHA ALTERADA! FAÇA LOGIN NOVAMENTE.")
+                    st.session_state.usuario = None
+                    st.session_state.pagina = 'home'
+                    st.rerun()
+                else:
+                    st.error("SENHAS NÃO CONFEREM!")
         conn.close()
         st.stop()
 
     st.markdown("""
-    <div style="font-family:'Playfair Display'; font-size:64px; font-weight:900; letter-spacing: 5px; margin-bottom: 15px;
-                text-align: center; background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%); -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent; background-clip: text;">JDA PIÇARRAS</div>
+    <div class="header-nav">
+        <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto;">
+            <div style="font-family:'Playfair Display'; font-size:42px; font-weight:900; letter-spacing: 4px;
+                        background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%); -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent; background-clip: text;">JDA PIÇARRAS</div>
+            <div style="font-family:Montserrat; font-size:14px; color:#CCC; letter-spacing:3px; text-transform:uppercase;">
+                BEM-VINDO, {usuario[1].upper()}
+            </div>
+        </div>
+    </div>
     """, unsafe_allow_html=True)
-    st.markdown('<div class="neon-line" style="width:80px;"></div>', unsafe_allow_html=True)
-    st.markdown(f'<div style="font-family:Montserrat; font-size:14px; color:#CCC; text-align:center; margin-bottom:40px; letter-spacing:4px; text-transform:uppercase;">BEM-VINDO, {usuario[1].upper()}</div>', unsafe_allow_html=True)
 
     aba = st.radio("", ["MEU PERFIL", "PROGRESSÃO", "LOJA", "MEUS PEDIDOS"], horizontal=True)
 
@@ -440,11 +380,11 @@ elif st.session_state.pagina == 'aluno':
                 st.rerun()
         with col2:
             st.markdown(f"""
-            <div style="padding:25px 0;">
-                <div style="font-family:'Playfair Display'; font-size:36px; color:#32FF7E; text-shadow: 0 0 8px #32FF7E;">{usuario[1]}</div>
-                <div style="font-family:'Montserrat'; color:#ccc; margin:10px 0;">{usuario[2]} | {usuario[4]}</div>
-                <div style="font-family:'Montserrat'; color:#32FF7E; font-weight:600;">GRADUAÇÃO: {usuario[7]}</div>
-                <div style="font-family:'Montserrat'; color:#ccc;">STATUS MENSALIDADE: {'ATIVA' if usuario[9] else 'INATIVA'}</div>
+            <div style="padding:30px 0;">
+                <div style="font-family:'Playfair Display'; font-size:40px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">{usuario[1]}</div>
+                <div style="font-family:'Montserrat'; color:#ccc; margin:15px 0;">{usuario[2]} | {usuario[4]}</div>
+                <div style="font-family:'Montserrat'; color:#32FF7E; font-weight:700; font-size:16px;">GRADUAÇÃO: {usuario[7]}</div>
+                <div style="font-family:'Montserrat'; color:#ccc; font-size:16px;">STATUS MENSALIDADE: {'ATIVA' if usuario[9] else 'INATIVA'}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -470,8 +410,8 @@ elif st.session_state.pagina == 'aluno':
             if prod[6]:
                 st.image(prod[6], width=200)
             st.markdown(f"""
-            <div style="padding:25px 0; border-bottom:1px solid #333;">
-                <div style="font-family:'Playfair Display'; font-size:28px; color:#32FF7E; text-shadow: 0 0 8px #32FF7E;">{prod[1]}</div>
+            <div style="padding:30px 0; border-bottom:1px solid #333;">
+                <div style="font-family:'Playfair Display'; font-size:32px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">{prod[1]}</div>
                 <div style="font-family:'Montserrat'; color:#ccc;">R$ {prod[3]:.2f} | Estoque: {prod[4]}</div>
                 <div style="font-family:'Montserrat'; color:#999;">{prod[5]}</div>
             </div>
@@ -485,7 +425,7 @@ elif st.session_state.pagina == 'aluno':
             for item in st.session_state.carrinho:
                 st.write(f"- {item['nome']} - R$ {item['preco']:.2f}")
             st.write(f"**TOTAL: R$ {total:.2f}**")
-            if st.button("FINALIZAR PEDIDO"):
+            if st.button("FINALIZAR PEDIDO", use_container_width=True):
                 data_pedido = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 c.execute("INSERT INTO pedidos (aluno_id, data_pedido, total, status) VALUES (?,?,?,?)",
                           (usuario[0], data_pedido, total, 'pendente'))
@@ -504,8 +444,8 @@ elif st.session_state.pagina == 'aluno':
         pedidos = c.fetchall()
         for pedido in pedidos:
             st.markdown(f"""
-            <div style="padding:25px 0; border-bottom:1px solid #333;">
-                <div style="font-family:'Playfair Display'; font-size:28px; color:#32FF7E; text-shadow: 0 0 8px #32FF7E;">PEDIDO #{pedido[0]}</div>
+            <div style="padding:30px 0; border-bottom:1px solid #333;">
+                <div style="font-family:'Playfair Display'; font-size:32px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">PEDIDO #{pedido[0]}</div>
                 <div style="font-family:'Montserrat'; color:#ccc;">R$ {pedido[3]:.2f} | {pedido[4].upper()} | {pedido[2]}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -515,8 +455,8 @@ elif st.session_state.pagina == 'aluno':
             for item in c.fetchall():
                 st.write(f'- {item[1]}x {item[0]} - R$ {item[2]:.2f}')
 
-    if st.button("SAIR"):
+    if st.button("SAIR", use_container_width=True):
         st.session_state.usuario = None
-        st.session_state.pagina = 'site'
+        st.session_state.pagina = 'home'
         st.rerun()
-    conn.close()
+    conn.close()    
