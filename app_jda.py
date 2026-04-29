@@ -8,7 +8,7 @@ import io
 
 st.set_page_config(page_title="JDA PIÇARRAS", layout="wide", initial_sidebar_state="collapsed")
 
-# CSS NEON VERDE PRETO - STREAMLIT 1.36
+# CSS COMPLETO LAYOUT NOVO
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@700;800;900&display=swap');
@@ -20,6 +20,7 @@ st.markdown("""
     color: #FFFFFF;
 }
 
+/* INPUTS */
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea,
 .stSelectbox > div > div > select,
@@ -39,6 +40,7 @@ st.markdown("""
 .stNumberInput > div > div > input:focus {
     border: 1px solid #32FF7E!important;
     box-shadow: 0 0 15px rgba(50, 255, 126, 0.3)!important;
+    outline: none!important;
 }
 
 .stTextInput label,.stTextArea label,.stSelectbox label,.stNumberInput label,.stRadio label,.stCheckbox label {
@@ -50,69 +52,36 @@ st.markdown("""
     text-transform: uppercase!important;
 }
 
-/* BOTÕES STREAMLIT 1.36 */
-div[data-testid="stButton"] > button {
+/* BOTÕES */
+.stButton > button {
     background: #1A1A1A!important;
-    border: 1px solid #32FF7E!important;
+    border: 2px solid #32FF7E!important;
     border-radius: 0px!important;
     color: #FFFFFF!important;
     font-family: 'Montserrat'!important;
-    font-weight: 600!important;
-    font-size: 12px!important;
-    letter-spacing: 2px!important;
+    font-weight: 700!important;
+    font-size: 13px!important;
+    letter-spacing: 2.5px!important;
     text-transform: uppercase!important;
-    padding: 15px 30px!important;
+    padding: 16px 32px!important;
     width: 100%!important;
     transition: all 0.3s ease!important;
 }
 
-div[data-testid="stButton"] > button:hover {
-    background: #32FF7E!important;
+.stButton > button:hover {
+    background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%)!important;
     color: #000!important;
-    box-shadow: 0 0 25px rgba(50, 255, 126, 0.5)!important;
+    box-shadow: 0 0 30px rgba(50, 255, 126, 0.5)!important;
+    border: 2px solid #32FF7E!important;
 }
 
-.logo-header {
-    font-family: 'Playfair Display', serif!important;
-    font-weight: 900!important;
-    font-size: 72px!important;
-    letter-spacing: 4px!important;
-    text-align: center!important;
-    margin-bottom: 10px!important;
+/* RADIO */
+.stRadio > div {
+    gap: 40px!important;
+    justify-content: center!important;
+    flex-direction: row!important;
 }
 
-.logo-jda { color: #32FF7E; text-shadow: 0 0 20px rgba(50, 255, 126, 0.6); }
-.logo-picaras { color: #FFFFFF; }
-
-.neon-line {
-    height: 3px;
-    background: linear-gradient(90deg, transparent, #32FF7E, transparent);
-    box-shadow: 0 0 15px #32FF7E;
-    margin: 30px auto;
-}
-
-.section-title {
-    font-family: 'Playfair Display', serif!important;
-    font-size: 42px!important;
-    font-weight: 700!important;
-    color: #FFFFFF!important;
-    text-align: center!important;
-    margin: 50px 0 30px 0!important;
-    letter-spacing: 3px!important;
-}
-
-.sub-header {
-    font-family: 'Montserrat'!important;
-    font-size: 14px!important;
-    font-weight: 500!important;
-    letter-spacing: 4px!important;
-    color: #CCCCCC!important;
-    text-align: center!important;
-    margin-bottom: 40px!important;
-    text-transform: uppercase!important;
-}
-
-.stRadio > div { gap: 40px!important; justify-content: center!important; }
 .stRadio > div > label {
     font-family: 'Montserrat'!important;
     font-weight: 600!important;
@@ -120,10 +89,33 @@ div[data-testid="stButton"] > button:hover {
     letter-spacing: 2px!important;
     text-transform: uppercase!important;
     color: #CCCCCC!important;
+    padding: 8px 0!important;
 }
+
 .stRadio > div > label[data-selected="true"] {
     color: #32FF7E!important;
     text-shadow: 0 0 10px rgba(50, 255, 126, 0.5)!important;
+}
+
+.stRadio > div > label > div:first-child {
+    border-color: #32FF7E!important;
+}
+
+.neon-line {
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #32FF7E, #FFD700, transparent);
+    box-shadow: 0 0 15px #32FF7E;
+    margin: 30px auto;
+}
+
+.section-title {
+    font-family: 'Playfair Display', serif!important;
+    font-size: 48px!important;
+    font-weight: 700!important;
+    color: #FFFFFF!important;
+    text-align: center!important;
+    margin: 50px 0 30px 0!important;
+    letter-spacing: 3px!important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -174,7 +166,7 @@ def init_db():
         data_pedido TEXT,
         total REAL,
         status TEXT DEFAULT 'pendente',
-        FOREIGN KEY(aluno_id) REFERENCES alunos(id)
+        FOREIGN KEY(aluno_id) REFERENCES pedidos(id)
     )''')
     c.execute('''CREATE TABLE IF NOT EXISTS itens_pedido (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -260,27 +252,163 @@ if 'forcar_troca_senha' not in st.session_state:
 
 # ===== SITE PRINCIPAL =====
 if st.session_state.pagina == 'site':
-    st.markdown('<div class="logo-header"><span class="logo-jda">JDA</span> <span class="logo-picaras">PIÇARRAS</span></div>', unsafe_allow_html=True)
-    st.markdown('<div class="neon-line" style="width:100px;"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">ACADEMIA DE CAPOEIRA</div>', unsafe_allow_html=True)
-
     aba = st.radio("", ["HOME", "LOGIN", "REGISTRO"], horizontal=True)
 
     if aba == "HOME":
-        st.markdown('<div class="section-title">HORÁRIOS DAS AULAS</div>', unsafe_allow_html=True)
+        # HERO COM GRADIENTE VERDE/AMARELO
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, rgba(0,0,0,0.92) 0%, rgba(10,10,10,0.98) 100%),
+                    url('https://images.unsplash.com/photo-1544552866-d3ed42536cfd?q=80&w=2070') center/cover;
+                    padding: 100px 40px 120px 40px; margin: -2rem -1rem 0 -1rem; text-align: center;">
+
+            <!-- LOGO COM GRADIENTE -->
+            <div style="font-family:'Playfair Display'; font-size:88px; font-weight:900;
+                        letter-spacing: 5px; margin-bottom: 15px;
+                        background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%);
+                        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                        background-clip: text; text-shadow: 0 0 40px rgba(50,255,126,0.3);">
+                JDA PIÇARRAS
+            </div>
+
+            <div style="font-family:'Montserrat'; font-size:16px; color:#CCCCCC;
+                        letter-spacing: 6px; text-transform: uppercase; margin-bottom: 40px;">
+                ACADEMIA DE CAPOEIRA
+            </div>
+
+            <div style="font-family:'Montserrat'; font-size:18px; color:#AAAAAA; max-width:750px;
+                        margin: 0 auto 50px auto; line-height: 1.9; letter-spacing: 0.5px;">
+                Tradição, disciplina e cultura em cada movimento.
+                Formando capoeiristas e cidadãos através da arte da roda.
+            </div>
+
+            <div style="display: flex; gap: 25px; justify-content: center; flex-wrap: wrap; max-width: 600px; margin: 0 auto;">
+        """, unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("SE INSCREVER", use_container_width=True, key="btn_inscrever"):
+                st.session_state.pagina = 'site'
+                st.rerun()
+        with col2:
+            if st.button("PORTAL DO ALUNO", use_container_width=True, key="btn_portal"):
+                st.session_state.pagina = 'site'
+                st.rerun()
+
+        st.markdown("</div></div>", unsafe_allow_html=True)
+
+        # SEÇÃO HORÁRIOS DE TREINO
+        st.markdown("""
+        <div style="padding: 80px 40px; background: #0A0A0A;">
+            <div style="font-family:'Playfair Display'; font-size:48px; color:#FFFFFF;
+                        font-weight:700; text-align: center; margin-bottom: 15px; letter-spacing: 3px;">
+                HORÁRIOS DE TREINO
+            </div>
+            <div class="neon-line" style="width:120px; margin: 0 auto 60px auto;"></div>
+        </div>
+        """, unsafe_allow_html=True)
+
         conn = sqlite3.connect(DB)
         c = conn.cursor()
         c.execute("SELECT * FROM horarios ORDER BY ordem ASC")
         horarios = c.fetchall()
-        for h in horarios:
-            st.markdown(f"""
-            <div style="padding:25px 0; border-bottom:1px solid #333;">
-                <div style="font-family:'Montserrat'; font-size:12px; color:#32FF7E; text-shadow: 0 0 8px #32FF7E; letter-spacing:2px;">{h[1].upper()}</div>
-                <div style="font-family:'Playfair Display'; font-size:32px; color:#FFFFFF; font-weight:700; margin:8px 0;">{h[2]}</div>
-                <div style="font-family:'Montserrat'; font-size:20px; color:#CCCCCC; font-weight:400;">{h[3]}</div>
-            </div>
-            """, unsafe_allow_html=True)
         conn.close()
+
+        # Agrupa por dia
+        dias = {}
+        for h in horarios:
+            if h[1] not in dias:
+                dias[h[1]] = []
+            dias[h[1]].append(h)
+
+        cols = st.columns(3)
+        col_index = 0
+
+        for dia, aulas in dias.items():
+            with cols[col_index % 3]:
+                st.markdown(f"""
+                <div style="background: linear-gradient(180deg, #1A1A1A 0%, #0F0F0F 100%);
+                            border: 2px solid #32FF7E; padding: 35px;
+                            margin-bottom: 35px; transition: all 0.4s ease;
+                            box-shadow: 0 0 20px rgba(50,255,126,0.1);">
+                    <div style="font-family:'Montserrat'; font-size:14px;
+                                background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%);
+                                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                                background-clip: text; letter-spacing: 3px;
+                                font-weight: 700; margin-bottom: 25px; text-align: center;">
+                        {dia.upper()}
+                    </div>
+                """, unsafe_allow_html=True)
+
+                for aula in aulas:
+                    st.markdown(f"""
+                    <div style="margin-bottom: 22px; text-align: center;">
+                        <div style="font-family:'Playfair Display'; font-size:26px; color:#FFFFFF;
+                                    font-weight:700; margin-bottom: 8px;">
+                            {aula[2]}
+                        </div>
+                        <div style="font-family:'Montserrat'; font-size:16px; color:#CCCCCC;
+                                    letter-spacing: 1px;">
+                            {aula[3]}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                st.markdown("</div>", unsafe_allow_html=True)
+            col_index += 1
+
+        # RODAPÉ
+        st.markdown("""
+        <div style="background: #000; border-top: 3px solid #32FF7E; padding: 60px 40px 30px 40px;
+                    margin: 80px -1rem -2rem -1rem;">
+            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; max-width: 1200px; margin: 0 auto;">
+
+                <div style="flex: 1; min-width: 250px;">
+                    <div style="font-family:'Playfair Display'; font-size:32px; font-weight:900;
+                                background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%);
+                                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                                background-clip: text; margin-bottom: 15px;">
+                        JDA PIÇARRAS
+                    </div>
+                    <div style="font-family:'Montserrat'; font-size:14px; color:#888; line-height: 1.8;">
+                        Capoeira é liberdade. Capoeira é vida.
+                    </div>
+                </div>
+
+                <div style="flex: 1; min-width: 250px;">
+                    <div style="font-family:'Montserrat'; font-size:14px; color:#32FF7E;
+                                font-weight: 700; letter-spacing: 2px; margin-bottom: 15px;
+                                text-transform: uppercase;">
+                        CONTATO
+                    </div>
+                    <div style="font-family:'Montserrat'; font-size:14px; color:#888; line-height: 2;">
+                        Piçarras - SC<br>
+                        WhatsApp: (47) 99999-9999<br>
+                        Instagram: @jdapicaras
+                    </div>
+                </div>
+
+                <div style="flex: 1; min-width: 250px;">
+                    <div style="font-family:'Montserrat'; font-size:14px; color:#32FF7E;
+                                font-weight: 700; letter-spacing: 2px; margin-bottom: 15px;
+                                text-transform: uppercase;">
+                        HORÁRIOS
+                    </div>
+                    <div style="font-family:'Montserrat'; font-size:14px; color:#888; line-height: 2;">
+                        Seg / Qua / Sex<br>
+                        Infantil: 18h às 19h<br>
+                        Adulto: 19h às 20h30
+                    </div>
+                </div>
+
+            </div>
+
+            <div style="border-top: 1px solid #222; margin-top: 50px; padding-top: 30px; text-align: center;">
+                <div style="font-family:'Montserrat'; font-size:12px; color:#555; letter-spacing: 1.5px;">
+                    © 2026 JDA PIÇARRAS - TODOS OS DIREITOS RESERVADOS
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     elif aba == "LOGIN":
         st.markdown('<div class="section-title">LOGIN</div>', unsafe_allow_html=True)
@@ -336,7 +464,15 @@ if st.session_state.pagina == 'site':
 
 # ===== ESQUECI SENHA =====
 elif st.session_state.pagina == 'esqueci_senha':
-    st.markdown('<div class="logo-header" style="font-size:64px;"><span class="logo-jda">JDA</span> <span class="logo-picaras">PIÇARRAS</span></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div style="font-family:'Playfair Display'; font-size:64px; font-weight:900;
+                letter-spacing: 5px; margin-bottom: 15px; text-align: center;
+                background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%);
+                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                background-clip: text;">
+        JDA PIÇARRAS
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown('<div class="section-title">RECUPERAR SENHA</div>', unsafe_allow_html=True)
 
     email_recuperar = st.text_input("DIGITE SEU EMAIL CADASTRADO")
@@ -363,9 +499,17 @@ elif st.session_state.pagina == 'esqueci_senha':
         st.rerun()# ===== PAINEL DO ADMIN =====
 elif st.session_state.pagina == 'admin':
     usuario = st.session_state.usuario
-    st.markdown(f'<div class="logo-header" style="font-size:64px;"><span class="logo-jda">JDA</span> <span class="logo-picaras">PIÇARRAS</span></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div style="font-family:'Playfair Display'; font-size:64px; font-weight:900;
+                letter-spacing: 5px; margin-bottom: 15px; text-align: center;
+                background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%);
+                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                background-clip: text;">
+        JDA PIÇARRAS
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown('<div class="neon-line" style="width:80px;"></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="sub-header">BEM-VINDO, MESTRE {usuario[1].upper()}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-family:Montserrat; font-size:14px; color:#CCC; text-align:center; margin-bottom:40px; letter-spacing:4px; text-transform:uppercase;">BEM-VINDO, MESTRE {usuario[1].upper()}</div>', unsafe_allow_html=True)
 
     conn = sqlite3.connect(DB)
     c = conn.cursor()
@@ -652,9 +796,17 @@ elif st.session_state.pagina == 'aluno':
         conn.close()
         st.stop()
 
-    st.markdown(f'<div class="logo-header" style="font-size:64px;"><span class="logo-jda">JDA</span> <span class="logo-picaras">PIÇARRAS</span></div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div style="font-family:'Playfair Display'; font-size:64px; font-weight:900;
+                letter-spacing: 5px; margin-bottom: 15px; text-align: center;
+                background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%);
+                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                background-clip: text;">
+        JDA PIÇARRAS
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown('<div class="neon-line" style="width:80px;"></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="sub-header">BEM-VINDO, {usuario[1].upper()}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-family:Montserrat; font-size:14px; color:#CCC; text-align:center; margin-bottom:40px; letter-spacing:4px; text-transform:uppercase;">BEM-VINDO, {usuario[1].upper()}</div>', unsafe_allow_html=True)
 
     aba = st.radio("", ["MEU PERFIL", "PROGRESSÃO", "LOJA", "MEUS PEDIDOS"], horizontal=True)
 
