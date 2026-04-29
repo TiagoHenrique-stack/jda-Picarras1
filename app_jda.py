@@ -405,71 +405,56 @@ elif st.session_state.pagina == 'admin':
         graduacoes = get_graduacoes()
         GRADUACOES_NOMES = [g[1] for g in graduacoes]
 
-        # Container isolado - evita duplicação no layout
-        with st.container():
-            grad_selecionada = st.selectbox("SELECIONE A GRADUAÇÃO", GRADUACOES_NOMES, key="grad_select_golpes")
+        # Inicializa a lista de golpes na session_state se não existir
+        if 'golpes' not in st.session_state:
+            st.session_state.golpes = []
 
-            # FORM garante submit único e limpa o campo automaticamente
-            with st.form(key="form_add_golpe", clear_on_submit=True):
-                st.markdown("### ADICIONAR GOLPE/MOVIMENTO")
-                col1, col2, col3 = st.columns([2,2,1])
-                with col1:
-                    tipo_item = st.selectbox("TIPO", ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"], key="tipo_select_form")
-                with col2:
-                    nome_item = st.text_input("NOME DO GOLPE", placeholder="Ex: Meia-lua de frente", key="nome_golpe_form")
-                with col3:
-                    st.write("")
-                    st.write("")
-                    submit_btn = st.form_submit_button("ADICIONAR", use_container_width=True)
+        grad_selecionada = st.selectbox("SELECIONE A GRADUAÇÃO", GRADUACOES_NOMES, key="grad_select_golpes")
 
-            if submit_btn:
-                if nome_item and nome_item.strip():
-                    try:
-                        # Conexão temporária só para este insert - funciona no Streamlit Cloud
-                        conn_temp = sqlite3.connect(DB)
-                        c_temp = conn_temp.cursor()
-                        c_temp.execute("SELECT MAX(ordem) FROM progressao WHERE graduacao=?", (grad_selecionada,))
-                        max_ordem = c_temp.fetchone()[0] or 0
-                        c_temp.execute("INSERT INTO progressao (graduacao, tipo, nome, ordem) VALUES (?,?,?,?)",
-                                  (grad_selecionada, tipo_item.lower(), nome_item.strip(), max_ordem + 1))
-                        conn_temp.commit()
-                        conn_temp.close()
-                        st.success(f"GOLPE '{nome_item}' ADICIONADO EM {grad_selecionada}!")
+        # FORM - adiciona golpe na session_state
+        with st.form(key="form_add_golpe", clear_on_submit=True):
+            st.markdown("### ADICIONAR GOLPE/MOVIMENTO")
+            col1, col2, col3 = st.columns([2,2,1])
+            with col1:
+                tipo_item = st.selectbox("TIPO", ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"], key="tipo_select_form")
+            with col2:
+                nome_item = st.text_input("NOME DO GOLPE", placeholder="Ex: Meia-lua de frente", key="nome_golpe_form")
+            with col3:
+                st.write("")
+                st.write("")
+                submit_btn = st.form_submit_button("ADICIONAR", use_container_width=True)
+
+        if submit_btn and nome_item.strip():
+            novo_golpe = {
+                "id": len(st.session_state.golpes) + 1,
+                "graduacao": grad_selecionada,
+                "tipo": tipo_item.lower(),
+                "nome": nome_item.strip(),
+                "ordem": len([g for g in st.session_state.golpes if g["graduacao"] == grad_selecionada and g["tipo"] == tipo_item.lower()]) + 1
+            }
+            st.session_state.golpes.append(novo_golpe)
+            st.success(f"GOLPE '{nome_item}' ADICIONADO EM {grad_selecionada}!")
+            st.rerun()
+
+        # LISTA golpes da session_state
+        st.markdown(f"### GOLPES PARA {grad_selecionada.upper()}")
+        tipos = ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"]
+
+        for tipo in tipos:
+            itens = [g for g in st.session_state.golpes
+                     if g["graduacao"] == grad_selecionada and g["tipo"] == tipo.lower()]
+            itens = sorted(itens, key=lambda x: x["ordem"])
+
+            if itens:
+                st.markdown(f"#### {tipo} ({len(itens)}/25)")
+                for item in itens:
+                    col1, col2 = st.columns([4,1])
+                    col1.write(f"{item['nome']}")
+                    if col2.button("EXCLUIR", key=f"del_{item['id']}"):
+                        st.session_state.golpes = [g for g in st.session_state.golpes if g["id"]!= item["id"]]
                         st.rerun()
-                    except Exception as e:
-                        st.error(f"ERRO AO SALVAR: {e}")
-                else:
-                    st.error("DIGITE O NOME DO GOLPE!")
-
-            # Lista os movimentos - conexão temporária separada pra evitar duplicação
-            st.markdown(f"### GOLPES PARA {grad_selecionada.upper()}")
-            tipos = ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"]
-
-            conn_list = sqlite3.connect(DB)
-            c_list = conn_list.cursor()
-            for tipo in tipos:
-                c_list.execute("SELECT * FROM progressao WHERE graduacao=? AND tipo=? ORDER BY ordem ASC", (grad_selecionada, tipo.lower()))
-                itens = c_list.fetchall()
-                if itens:
-                    st.markdown(f"#### {tipo} ({len(itens)}/25)")
-                    for item in itens:
-                        col1, col2, col3 = st.columns([3,1,1])
-                        col1.write(f"{item[3]}")
-                        if col2.button("SUBIR", key=f"up_{item[0]}"):
-                            if item[4] > 1:
-                                c_list.execute("UPDATE progressao SET ordem = ordem - 1 WHERE id =?", (item[0],))
-                                c_list.execute("UPDATE progressao SET ordem = ordem + 1 WHERE graduacao=? AND tipo=? AND ordem =? AND id!=?",
-                                          (grad_selecionada, tipo.lower(), item[4] - 1, item[0]))
-                                conn_list.commit()
-                                st.rerun()
-                        if col3.button("EXCLUIR", key=f"del_prog_{item[0]}"):
-                            c_list.execute("DELETE FROM progressao WHERE id=?", (item[0],))
-                            conn_list.commit()
-                            st.success("GOLPE EXCLUÍDO!")
-                            st.rerun()
-                else:
-                    st.info(f"NENHUM {tipo} CADASTRADO PARA {grad_selecionada}")
-            conn_list.close()
+            else:
+                st.info(f"NENHUM {tipo} CADASTRADO PARA {grad_selecionada}")
 
     elif aba == "GRADUAÇÃO":
         st.markdown('<div class="section-title">APROVAR GRADUAÇÃO</div>', unsafe_allow_html=True)
