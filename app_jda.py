@@ -404,27 +404,43 @@ elif st.session_state.pagina == 'admin':
         st.markdown('<div class="section-title">GESTÃO DE GOLPES POR GRADUAÇÃO</div>', unsafe_allow_html=True)
         graduacoes = get_graduacoes()
         GRADUACOES_NOMES = [g[1] for g in graduacoes]
+
+        if 'grad_select' not in st.session_state:
+            st.session_state.grad_select = GRADUACOES_NOMES[0]
+
         grad_selecionada = st.selectbox("SELECIONE A GRADUAÇÃO", GRADUACOES_NOMES, key="grad_select")
 
         st.markdown("### ADICIONAR GOLPE/MOVIMENTO")
         col1, col2, col3 = st.columns([2,2,1])
+
         with col1:
             tipo_item = st.selectbox("TIPO", ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"], key="tipo_select")
         with col2:
             nome_item = st.text_input("NOME DO GOLPE", placeholder="Ex: Meia-lua de frente", key="nome_golpe")
         with col3:
-            if st.button("ADICIONAR", key="btn_add_golpe"):
+            st.write("")
+            st.write("")
+            if st.button("ADICIONAR", key="btn_add_golpe", use_container_width=True):
                 if nome_item and nome_item.strip():
-                    c.execute("SELECT MAX(ordem) FROM progressao WHERE graduacao=?", (grad_selecionada,))
-                    max_ordem = c.fetchone()[0] or 0
-                    c.execute("INSERT INTO progressao (graduacao, tipo, nome, ordem) VALUES (?,?,?,?)",
-                              (grad_selecionada, tipo_item.lower(), nome_item.strip(), max_ordem + 1))
-                    conn.commit()
-                    st.success(f"GOLPE '{nome_item}' ADICIONADO EM {grad_selecionada}!")
-                    st.rerun()
+                    try:
+                        # Abre conexão nova só pra este insert - funciona no Streamlit Cloud
+                        conn_temp = sqlite3.connect(DB)
+                        c_temp = conn_temp.cursor()
+                        c_temp.execute("SELECT MAX(ordem) FROM progressao WHERE graduacao=?", (grad_selecionada,))
+                        max_ordem = c_temp.fetchone()[0] or 0
+                        c_temp.execute("INSERT INTO progressao (graduacao, tipo, nome, ordem) VALUES (?,?,?,?)",
+                                  (grad_selecionada, tipo_item.lower(), nome_item.strip(), max_ordem + 1))
+                        conn_temp.commit()
+                        conn_temp.close()
+                        st.success(f"GOLPE '{nome_item}' ADICIONADO EM {grad_selecionada}!")
+                        st.session_state.nome_golpe = ""
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"ERRO AO SALVAR: {e}")
                 else:
                     st.error("DIGITE O NOME DO GOLPE!")
 
+        # Lista os movimentos usando a conexão principal
         st.markdown(f"### GOLPES PARA {grad_selecionada.upper()}")
         tipos = ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"]
         for tipo in tipos:
