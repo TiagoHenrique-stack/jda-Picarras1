@@ -43,7 +43,7 @@ st.markdown("""
     white-space: nowrap;
 }
 @media (max-width: 768px) {
-  .hero-title { font-size: 48px; white-space: normal; letter-spacing: 3px; }
+.hero-title { font-size: 48px; white-space: normal; letter-spacing: 3px; }
 }
 .pix-box { background: #1A1A1A; border: 2px solid #32FF7E; padding: 30px; margin: 25px 0; box-shadow: 0 0 20px rgba(50,255,126,0.3); }
 </style>
@@ -92,7 +92,7 @@ def init_db():
         descricao TEXT, imagem_url BLOB, ativo INTEGER DEFAULT 1, ordem INTEGER DEFAULT 0)''')
     c.execute('''CREATE TABLE IF NOT EXISTS pedidos (
         id INTEGER PRIMARY KEY AUTOINCREMENT, aluno_id INTEGER, data_pedido TEXT, total REAL, status TEXT DEFAULT 'pendente',
-        FOREIGN KEY(aluno_id) REFERENCES alunos(id))''')
+        FOREIGN KEY(aluno_id) REFERENCES pedidos(id))''')
     c.execute('''CREATE TABLE IF NOT EXISTS itens_pedido (
         id INTEGER PRIMARY KEY AUTOINCREMENT, pedido_id INTEGER, produto_id INTEGER, quantidade INTEGER, preco_unitario REAL,
         FOREIGN KEY(pedido_id) REFERENCES pedidos(id), FOREIGN KEY(produto_id) REFERENCES produtos(id))''')
@@ -145,9 +145,7 @@ if 'forcar_troca_senha' not in st.session_state:
 
 if st.session_state.pagina == 'home':
     st.markdown("""
-    <div style="background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(10,10,10,1) 100%),
-                url('https://images.unsplash.com/photo-1544552866-d3ed42536cfd?q=80&w=2070') center/cover;
-                padding: 160px 40px 180px 40px; margin: -2rem -1rem 0 -1rem; text-align: center; border-bottom: 3px solid #32FF7E;">
+    <div style="background: #0A0A0A; padding: 160px 40px 180px 40px; margin: -2rem -1rem 0 -1rem; text-align: center; border-bottom: 3px solid #32FF7E;">
         <div class="hero-title">JDA PIÇARRAS</div>
         <div style="font-family:'Montserrat'; font-size:20px; color:#CCCCCC; letter-spacing: 10px; text-transform: uppercase; margin-bottom: 60px;">
             ACADEMIA PREMIUM DE CAPOEIRA
@@ -406,21 +404,26 @@ elif st.session_state.pagina == 'admin':
         st.markdown('<div class="section-title">GESTÃO DE GOLPES POR GRADUAÇÃO</div>', unsafe_allow_html=True)
         graduacoes = get_graduacoes()
         GRADUACOES_NOMES = [g[1] for g in graduacoes]
-        grad_selecionada = st.selectbox("SELECIONE A GRADUAÇÃO", GRADUACOES_NOMES)
+        grad_selecionada = st.selectbox("SELECIONE A GRADUAÇÃO", GRADUACOES_NOMES, key="grad_select")
 
         st.markdown("### ADICIONAR GOLPE/MOVIMENTO")
         col1, col2, col3 = st.columns([2,2,1])
-        tipo_item = col1.selectbox("TIPO", ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"])
-        nome_item = col2.text_input("NOME DO GOLPE", placeholder="Ex: Meia-lua de frente")
-        if col3.button("ADICIONAR"):
-            if nome_item:
-                c.execute("SELECT MAX(ordem) FROM progressao WHERE graduacao=?", (grad_selecionada,))
-                max_ordem = c.fetchone()[0] or 0
-                c.execute("INSERT INTO progressao (graduacao, tipo, nome, ordem) VALUES (?,?,?,?)",
-                          (grad_selecionada, tipo_item.lower(), nome_item, max_ordem + 1))
-                conn.commit()
-                st.success("GOLPE ADICIONADO!")
-                st.rerun()
+        with col1:
+            tipo_item = st.selectbox("TIPO", ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"], key="tipo_select")
+        with col2:
+            nome_item = st.text_input("NOME DO GOLPE", placeholder="Ex: Meia-lua de frente", key="nome_golpe")
+        with col3:
+            if st.button("ADICIONAR", key="btn_add_golpe"):
+                if nome_item and nome_item.strip():
+                    c.execute("SELECT MAX(ordem) FROM progressao WHERE graduacao=?", (grad_selecionada,))
+                    max_ordem = c.fetchone()[0] or 0
+                    c.execute("INSERT INTO progressao (graduacao, tipo, nome, ordem) VALUES (?,?,?,?)",
+                              (grad_selecionada, tipo_item.lower(), nome_item.strip(), max_ordem + 1))
+                    conn.commit()
+                    st.success(f"GOLPE '{nome_item}' ADICIONADO EM {grad_selecionada}!")
+                    st.rerun()
+                else:
+                    st.error("DIGITE O NOME DO GOLPE!")
 
         st.markdown(f"### GOLPES PARA {grad_selecionada.upper()}")
         tipos = ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"]
@@ -430,11 +433,19 @@ elif st.session_state.pagina == 'admin':
             if itens:
                 st.markdown(f"#### {tipo} ({len(itens)}/25)")
                 for item in itens:
-                    col1, col2 = st.columns([4,1])
+                    col1, col2, col3 = st.columns([3,1,1])
                     col1.write(f"{item[3]}")
-                    if col2.button("EXCLUIR", key=f"del_prog_{item[0]}"):
+                    if col2.button("SUBIR", key=f"up_{item[0]}"):
+                        if item[4] > 1:
+                            c.execute("UPDATE progressao SET ordem = ordem - 1 WHERE id =?", (item[0],))
+                            c.execute("UPDATE progressao SET ordem = ordem + 1 WHERE graduacao=? AND tipo=? AND ordem =? AND id!=?",
+                                      (grad_selecionada, tipo.lower(), item[4] - 1, item[0]))
+                            conn.commit()
+                            st.rerun()
+                    if col3.button("EXCLUIR", key=f"del_prog_{item[0]}"):
                         c.execute("DELETE FROM progressao WHERE id=?", (item[0],))
                         conn.commit()
+                        st.success("GOLPE EXCLUÍDO!")
                         st.rerun()
             else:
                 st.info(f"NENHUM {tipo} CADASTRADO PARA {grad_selecionada}")
@@ -480,10 +491,10 @@ elif st.session_state.pagina == 'admin':
         st.markdown('<div class="section-title">GESTÃO DE HORÁRIOS</div>', unsafe_allow_html=True)
         with st.expander("ADICIONAR HORÁRIO"):
             col1, col2, col3 = st.columns(3)
-            novo_dia = col1.text_input("DIA DA SEMANA")
-            nova_turma = col2.text_input("NOME DA TURMA")
-            novo_horario = col3.text_input("HORÁRIO")
-            if st.button("ADICIONAR"):
+            novo_dia = col1.text_input("DIA DA SEMANA", key="novo_dia")
+            nova_turma = col2.text_input("NOME DA TURMA", key="nova_turma")
+            novo_horario = col3.text_input("HORÁRIO", key="novo_horario")
+            if st.button("ADICIONAR", key="btn_add_horario"):
                 if novo_dia and nova_turma and novo_horario:
                     c.execute("SELECT MAX(ordem) FROM horarios")
                     max_ordem = c.fetchone()[0] or 0
@@ -524,13 +535,13 @@ elif st.session_state.pagina == 'admin':
     elif aba == "LOJA":
         st.markdown('<div class="section-title">GESTÃO DA LOJA</div>', unsafe_allow_html=True)
         with st.expander("ADICIONAR PRODUTO"):
-            nome_prod = st.text_input("NOME DO PRODUTO")
-            categoria_prod = st.selectbox("CATEGORIA", ["CAMISA", "INSTRUMENTO", "ACESSORIO", "OUTROS"])
-            preco_prod = st.number_input("PREÇO", min_value=0.0, step=0.50)
-            estoque_prod = st.number_input("ESTOQUE", min_value=0, step=1)
-            descricao_prod = st.text_area("DESCRIÇÃO")
-            imagem_prod = st.file_uploader("IMAGEM", type=['jpg', 'jpeg', 'png'])
-            if st.button("ADICIONAR PRODUTO"):
+            nome_prod = st.text_input("NOME DO PRODUTO", key="nome_prod")
+            categoria_prod = st.selectbox("CATEGORIA", ["CAMISA", "INSTRUMENTO", "ACESSORIO", "OUTROS"], key="cat_prod")
+            preco_prod = st.number_input("PREÇO", min_value=0.0, step=0.50, key="preco_prod")
+            estoque_prod = st.number_input("ESTOQUE", min_value=0, step=1, key="estoque_prod")
+            descricao_prod = st.text_area("DESCRIÇÃO", key="desc_prod")
+            imagem_prod = st.file_uploader("IMAGEM", type=['jpg', 'jpeg', 'png'], key="img_prod")
+            if st.button("ADICIONAR PRODUTO", key="btn_add_prod"):
                 if nome_prod and preco_prod > 0:
                     imagem_bytes = resize_image(imagem_prod) if imagem_prod else None
                     c.execute("SELECT MAX(ordem) FROM produtos")
@@ -690,7 +701,7 @@ elif st.session_state.pagina == 'aluno':
             if itens:
                 st.markdown(f"### {tipo} ({len(itens)}/25)")
                 for item in itens:
-                    st.checkbox(item[3], key=f"prog_{item[0]}", disabled=True)
+                    st.checkbox(item[3], key=f"prog_aluno_{item[0]}", disabled=True)
             else:
                 st.info(f"NENHUM {tipo} CADASTRADO PARA {grad_atual}")
 
