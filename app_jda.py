@@ -5,7 +5,7 @@ from datetime import datetime
 import hashlib
 import pandas as pd
 
-st.set_page_config(layout="wide", page_title="JDA PIÇARRAS - Painel Mestre", initial_sidebar_state="collapsed")
+st.set_page_config(layout="wide", page_title="JDA PIÇARRAS - Painel Mestre", initial_sidebar_state="expanded")
 
 # Inicialização do Firebase
 if not _apps:
@@ -164,7 +164,7 @@ if 'edit_index' not in st.session_state:
 if 'edit_type' not in st.session_state:
     st.session_state.edit_type = None
 if 'sidebar_visible' not in st.session_state:
-    st.session_state.sidebar_visible = False
+    st.session_state.sidebar_visible = True
 
 # CSS ESTILIZADO
 st.markdown("""
@@ -346,9 +346,9 @@ header, #MainMenu, footer {visibility: hidden!important;}
 
 /* RESPONSIVO MOBILE */
 @media (max-width: 768px) {
-  .title-cardinal {font-size: 48px!important; margin: 60px 0 15px 0!important;}
-  .horario-titulo {font-size: 28px!important; margin: 50px 0 20px 0!important;}
-  .horario-item {font-size: 16px!important;}
+ .title-cardinal {font-size: 48px!important; margin: 60px 0 15px 0!important;}
+ .horario-titulo {font-size: 28px!important; margin: 50px 0 20px 0!important;}
+ .horario-item {font-size: 16px!important;}
 }
 </style>
 """, unsafe_allow_html=True)# BOTÃO TOGGLE SIDEBAR - VISÍVEL SEMPRE NO ADMIN
@@ -405,22 +405,25 @@ elif st.session_state.show_admin and not st.session_state.logged_in:
 # PAINEL ADMIN LOGADO
 elif st.session_state.logged_in and not st.session_state.must_change_password and st.session_state.user_data.get('role') == 'admin':
 
-    # SIDEBAR CONTROLÁVEL
+    # SIDEBAR CONTROLÁVEL - SEMPRE RENDERIZA
     with st.sidebar:
+        st.title("PAINEL MESTRE")
+        menu_opcoes = [
+            "📊 Dashboard",
+            "⏰ Horários",
+            "🛍️ Loja",
+            "🥋 Golpes",
+            "👥 Alunos",
+            "⚙️ Configurações"
+        ]
+
         if st.session_state.sidebar_visible:
-            st.title("PAINEL MESTRE")
-            menu_opcoes = [
-                "📊 Dashboard",
-                "⏰ Horários",
-                "🛍️ Loja",
-                "🥋 Golpes",
-                "👥 Alunos",
-                "⚙️ Configurações"
-            ]
             st.session_state.admin_page = st.radio("Navegação", menu_opcoes, index=0)
             st.divider()
             if st.button("🚪 SAIR", use_container_width=True):
                 logout()
+        else:
+            st.write("Menu oculto")
 
     # HEADER DO PAINEL - LINHA CORRIGIDA
     pagina_atual = st.session_state.admin_page.split(' ', 1)[1] if ' ' in st.session_state.admin_page else st.session_state.admin_page
