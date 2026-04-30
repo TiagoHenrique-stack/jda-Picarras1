@@ -423,7 +423,7 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
                 logout()
 
     # HEADER DO PAINEL - LINHA CORRIGIDA
-    pagina_atual = st.session_state.admin_page.split(' ', 1)[1] if '' in st.session_state.admin_page else st.session_state.admin_page
+    pagina_atual = st.session_state.admin_page.split(' ', 1)[1] if ' ' in st.session_state.admin_page else st.session_state.admin_page
     st.markdown(f'<h1 class="admin-title">{pagina_atual}</h1>', unsafe_allow_html=True)
     st.markdown(f'<p class="admin-subtitle">Bem-vindo, {st.session_state.user_data["nome"]}</p>', unsafe_allow_html=True)
 
