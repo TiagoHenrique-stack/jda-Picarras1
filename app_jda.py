@@ -1,164 +1,22 @@
 import streamlit as st
-from firebase_admin import credentials, firestore, initialize_app
-import hashlib
-import base64
+import firebase_admin
+from firebase_admin import credentials, firestore, get_app, _apps, storage
 from datetime import datetime
-from PIL import Image
-import io
+import hashlib
+import pandas as pd
+import base64
+import os
 
-# CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(
-    page_title="JDA PIÇARRAS - ACADEMIA DE CAPOEIRA",
-    page_icon="🥋",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(layout="wide", page_title="JDA PIÇARRAS - Capoeira", initial_sidebar_state="expanded")
 
-# CSS PREMIUM PRETO + VERDE + DOURADO
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@300;400;600;700;800&display=swap');
-
-* {
-    font-family: 'Montserrat', sans-serif;
-}
-
-.stApp {
-    background: #0A0A0A;
-    color: #FFFFFF;
-}
-
-.hero-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 120px;
-    font-weight: 900;
-    background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 0 40px rgba(50, 255, 126, 0.4);
-    letter-spacing: 12px;
-    line-height: 1.1;
-    margin-bottom: 20px;
-}
-
-.section-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 64px;
-    font-weight: 700;
-    color: #FFFFFF;
-    text-align: center;
-    margin: 100px 0 60px 0;
-    letter-spacing: 6px;
-}
-
-.neon-line {
-    width: 120px;
-    height: 4px;
-    background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%);
-    box-shadow: 0 0 20px #32FF7E;
-    margin: 0 auto 80px auto;
-}
-
-.stButton > button {
-    background: transparent;
-    border: 2px solid #32FF7E;
-    color: #32FF7E;
-    font-family: 'Montserrat';
-    font-weight: 700;
-    font-size: 14px;
-    letter-spacing: 3px;
-    padding: 18px 40px;
-    text-transform: uppercase;
-    transition: all 0.3s ease;
-    border-radius: 0px;
-    box-shadow: 0 0 15px rgba(50, 255, 126, 0.2);
-}
-
-.stButton > button:hover {
-    background: #32FF7E;
-    color: #0A0A0A;
-    box-shadow: 0 0 30px rgba(50, 255, 126, 0.8);
-    transform: translateY(-2px);
-}
-
-.stTextInput > div > div > input {
-    background: #1A1A1A;
-    border: 1px solid #333;
-    color: #FFFFFF;
-    font-family: 'Montserrat';
-    font-size: 16px;
-    padding: 15px;
-    border-radius: 0px;
-}
-
-.stTextInput > div > div > input:focus {
-    border: 1px solid #32FF7E;
-    box-shadow: 0 0 10px rgba(50, 255, 126, 0.5);
-}
-
-.stSelectbox > div > div > select {
-    background: #1A1A1A;
-    border: 1px solid #333;
-    color: #FFFFFF;
-    font-family: 'Montserrat';
-    border-radius: 0px;
-}
-
-.stRadio > div {
-    flex-direction: row;
-    gap: 30px;
-    justify-content: center;
-    margin-bottom: 60px;
-}
-
-.stRadio > div > label {
-    font-family: 'Montserrat';
-    font-weight: 600;
-    letter-spacing: 2px;
-    font-size: 13px;
-    color: #666;
-}
-
-.stRadio > div > label[data-checked="true"] {
-    color: #32FF7E;
-    text-shadow: 0 0 10px #32FF7E;
-}
-
-.pix-box {
-    background: #1A1A1A;
-    border: 2px solid #32FF7E;
-    padding: 30px;
-    margin: 30px 0;
-    box-shadow: 0 0 25px rgba(50,255,126,0.2);
-}
-
-div[data-testid="stExpander"] {
-    background: #1A1A1A;
-    border: 1px solid #333;
-    border-radius: 0px;
-}
-
-div[data-testid="stExpander"] > div > div > p {
-    font-family: 'Montserrat';
-    font-weight: 600;
-    letter-spacing: 2px;
-    color: #32FF7E;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# FIREBASE INIT
-from firebase_admin import get_app, _apps
-
+# Inicialização do Firebase
 if not _apps:
     try:
         if 'firebase_credentials' in st.secrets:
-            cred = credentials.Certificate(dict(st.session_state.firebase_credentials)) if 'firebase_credentials' in st.session_state else credentials.Certificate(dict(st.secrets['firebase_credentials']))
+            cred = credentials.Certificate(dict(st.secrets['firebase_credentials']))
         else:
             cred = credentials.Certificate("firebase_key.json")
-        initialize_app(cred)
+        firebase_admin.initialize_app(cred, {'storageBucket': 'jda-picarras1.appspot.com'})
     except Exception as e:
         st.error(f"ERRO FIREBASE: {e}")
         st.stop()
@@ -166,671 +24,437 @@ else:
     app = get_app()
 
 db = firestore.client()
-col_alunos = db.collection('alunos')
-col_horarios = db.collection('horarios')
-col_produtos = db.collection('produtos')
-col_pedidos = db.collection('pedidos')
-col_itens_pedido = db.collection('itens_pedido')
-col_config = db.collection('config')
-col_progressao = db.collection('progressao')
-
-# CONSTANTES GRADUAÇÃO
-GRADUACOES = [
-    (0, "Iniciante"),
-    (1, "Cinza"),
-    (2, "Cinza e Amarela"),
-    (3, "Amarela"),
-    (4, "Amarela e Laranja"),
-    (5, "Laranja"),
-    (6, "Laranja e Azul"),
-    (7, "Azul"),
-    (8, "Azul e Verde"),
-    (9, "Verde"),
-    (10, "Verde e Roxa"),
-    (11, "Roxa"),
-    (12, "Roxa e Marrom"),
-    (13, "Marrom"),
-    (14, "Marrom e Vermelha"),
-    (15, "Vermelha"),
-    (16, "Mestre")
-]
-
-def get_graduacoes():
-    return GRADUACOES
 
 def hash_senha(senha):
     return hashlib.sha256(senha.encode()).hexdigest()
 
-def resize_image(uploaded_file, max_size=(400, 400)):
-    img = Image.open(uploaded_file)
-    img.thumbnail(max_size, Image.Resampling.LANCZOS)
-    buffered = io.BytesIO()
-    img.save(buffered, format="JPEG", quality=85)
-    return base64.b64encode(buffered.getvalue()).decode()
+def obter_taxa_cadastro():
+    doc = db.collection('config').document('taxa_cadastro').get()
+    return doc.to_dict().get('valor', 50) if doc.exists else 50
 
-def get_config(chave):
-    doc = col_config.document(chave).get()
-    return doc.to_dict()['valor'] if doc.exists else ""
+def obter_chave_pix():
+    doc = db.collection('config').document('chave_pix').get()
+    return doc.to_dict().get('valor', 'jda@pix.com.br') if doc.exists else 'jda@pix.com.br'
 
-def set_config(chave, valor):
-    col_config.document(chave).set({'valor': valor})
+def obter_horarios():
+    doc = db.collection('config').document('horarios').get()
+    return doc.to_dict().get('lista', [
+        {"dia": "Segunda / Quarta / Sexta", "horario": "19:00 - 21:00"},
+        {"dia": "Sábado", "horario": "14:00 - 17:00"},
+        {"dia": "Roda Mensal", "horario": "Último Sábado - 16:00"}
+    ]) if doc.exists else []
 
-# SESSION STATE
-if 'pagina' not in st.session_state:
-    st.session_state.pagina = 'home'
-if 'usuario' not in st.session_state:
-    st.session_state.usuario = None
-if 'carrinho' not in st.session_state:
-    st.session_state.carrinho = []
-if 'forcar_troca_senha' not in st.session_state:
-    st.session_state.forcar_troca_senha = False
+def salvar_horarios(lista_horarios):
+    db.collection('config').document('horarios').set({'lista': lista_horarios})
+    return True
 
-# ===== HOME =====
-if st.session_state.pagina == 'home':
-    st.markdown("""
-    <div style="background: #0A0A0A; padding: 160px 40px 180px 40px; margin: -2rem -1rem 0 -1rem; text-align: center; border-bottom: 3px solid #32FF7E;">
-        <div class="hero-title">JDA PIÇARRAS</div>
-        <div style="font-family:'Montserrat'; font-size:20px; color:#CCCCCC; letter-spacing: 10px; text-transform: uppercase; margin-bottom: 60px;">
-            ACADEMIA PREMIUM DE CAPOEIRA
-        </div>
-        <div style="font-family:'Montserrat'; font-size:22px; color:#AAAAAA; max-width:850px; margin: 0 auto 70px auto;
-                    line-height: 2.2; letter-spacing: 1px; font-weight: 400;">
-            Tradição, disciplina e cultura em cada movimento. Formando capoeiristas e cidadãos através da arte da roda.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+def obter_produtos_loja():
+    doc = db.collection('config').document('loja').get()
+    return doc.to_dict().get('produtos', [
+        {"nome": "Camiseta JDA", "preco": 45.00, "descricao": "Camiseta oficial JDA Piçarras"}
+    ]) if doc.exists else []
 
-    col1, col2, col3 = st.columns([1,2,1])
+def salvar_produtos_loja(lista_produtos):
+    db.collection('config').document('loja').set({'produtos': lista_produtos})
+    return True
+
+def obter_golpes_por_graduacao(graduacao):
+    doc = db.collection('golpes').document(graduacao).get()
+    if doc.exists:
+        return doc.to_dict().get('golpes', [])
+    return [{"nome": f"Golpe {i+1}", "descricao": ""} for i in range(25)]
+
+def salvar_golpes_por_graduacao(graduacao, lista_golpes):
+    db.collection('golpes').document(graduacao).set({'golpes': lista_golpes})
+    return True
+
+def cadastrar_aluno(nome, email, graduacao, telefone, paga_mensalidade, taxa_cadastro_paga):
+    senha_temp = hash_senha("123456")
+    aluno_data = {
+        'nome': nome,
+        'email': email,
+        'senha': senha_temp,
+        'graduacao': graduacao,
+        'telefone': telefone,
+        'paga_mensalidade': paga_mensalidade,
+        'taxa_cadastro_paga': taxa_cadastro_paga,
+        'role': 'aluno',
+        'status': 'pendente',
+        'primeiro_acesso': True,
+        'data_cadastro': datetime.now(),
+        'progresso_golpes': {}
+    }
+    db.collection('alunos').document(email).set(aluno_data)
+    return True
+
+def aprovar_aluno(email):
+    db.collection('alunos').document(email).update({'status': 'ativo'})
+    return True
+
+def login_aluno(email, senha):
+    hash_senha = hashlib.sha256(senha.encode()).hexdigest()
+    doc = db.collection('alunos').document(email).get()
+
+    if not doc.exists:
+        st.error("Credenciais inválidas")
+        return False
+
+    dados = doc.to_dict()
+
+    if dados.get('senha') == hash_senha and dados.get('status') == 'ativo':
+        st.session_state.logged_in = True
+        st.session_state.user_data = dados
+        if dados.get('primeiro_acesso', False):
+            st.session_state.must_change_password = True
+        st.rerun()
+        return True
+    else:
+        st.error("Credenciais inválidas ou usuário inativo")
+        return False
+
+def logout():
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.rerun()
+
+# 12 GRADUAÇÕES DE CAPOEIRA
+GRADUACOES_CAPOEIRA = [
+    "Crua", "Crua 1º Cordão", "Crua 2º Cordão",
+    "Amarela", "Amarela 1º Cordão", "Amarela 2º Cordão",
+    "Laranja", "Laranja 1º Cordão", "Laranja 2º Cordão",
+    "Azul", "Azul 1º Cordão", "Azul 2º Cordão",
+    "Verde", "Verde 1º Cordão", "Verde 2º Cordão",
+    "Roxa", "Roxa 1º Cordão", "Roxa 2º Cordão",
+    "Marrom", "Marrom 1º Cordão", "Marrom 2º Cordão",
+    "Preta", "Preta 1º Cordão", "Preta 2º Cordão",
+    "Preta 3º Cordão", "Preta 4º Cordão", "Mestre"
+]
+
+# Estado da sessão
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'user_data' not in st.session_state:
+    st.session_state.user_data = None
+if 'show_admin' not in st.session_state:
+    st.session_state.show_admin = False
+if 'show_student_portal' not in st.session_state:
+    st.session_state.show_student_portal = False
+if 'must_change_password' not in st.session_state:
+    st.session_state.must_change_password = False
+if 'show_cadastro' not in st.session_state:
+    st.session_state.show_cadastro = False
+if 'admin_page' not in st.session_state:
+    st.session_state.admin_page = "Dashboard"
+
+# CSS APENAS PARA PÁGINA PÚBLICA
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+header, #MainMenu, footer {visibility: hidden!important;}
+
+.stApp {
+    background: #0a0a0a!important;
+    padding: 60px 20px 40px 20px!important;
+}
+
+.title-cardinal {
+    font-family: 'Playfair Display', serif!important;
+    font-size: 72px!important;
+    font-weight: 800!important;
+    background: linear-gradient(135deg, #00ff88 0%, #ffff00 100%)!important;
+    -webkit-background-clip: text!important;
+    -webkit-text-fill-color: transparent!important;
+    background-clip: text!important;
+    text-align: center!important;
+    letter-spacing: -2px!important;
+    margin: 0 0 24px 0!important;
+}
+
+.subtitle-cardinal {
+    font-family: 'Inter', sans-serif!important;
+    font-size: 16px!important;
+    color: rgba(255, 255, 255, 0.8)!important;
+    text-align: center!important;
+    letter-spacing: 1.5px!important;
+    margin: 0 auto 80px auto!important;
+}
+
+[data-testid="stButton"] > button {
+    background: #000!important;
+    border: 2px solid #00ff88!important;
+    color: #00ff88!important;
+    font-family: 'Inter', sans-serif!important;
+    font-size: 14px!important;
+    font-weight: 600!important;
+    letter-spacing: 3px!important;
+    text-transform: uppercase!important;
+    padding: 35px 50px!important;
+    width: 100%!important;
+    border-radius: 0px!important;
+}
+
+[data-testid="stButton"] > button:hover {
+    background: #00ff88!important;
+    color: #000!important;
+}
+</style>
+""", unsafe_allow_html=True)# TELA INICIAL PÚBLICA
+if not st.session_state.logged_in and not st.session_state.show_admin and not st.session_state.show_student_portal and not st.session_state.show_cadastro:
+
+    st.markdown('<h1 class="title-cardinal">JDA PIÇARRAS</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle-cardinal">Tradição, disciplina e cultura em cada movimento</p>', unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("PORTAL DO ALUNO", key="btn_aluno", use_container_width=True):
+            st.session_state.show_student_portal = True
+            st.rerun()
     with col2:
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            if st.button("SE INSCREVER", use_container_width=True, key="btn_inscrever"):
-                st.session_state.pagina = 'registro'
-                st.rerun()
-        with col_btn2:
-            if st.button("PORTAL DO ALUNO", use_container_width=True, key="btn_portal"):
-                st.session_state.pagina = 'login'
-                st.rerun()
+        if st.button("SE INSCREVER", key="btn_cadastro", use_container_width=True):
+            st.session_state.show_cadastro = True
+            st.rerun()
 
-    st.markdown("""
-    <div style="padding: 120px 40px; background: #0A0A0A;">
-        <div style="font-family:'Playfair Display'; font-size:60px; color:#FFFFFF; font-weight:700; text-align: center;
-                    margin-bottom: 25px; letter-spacing: 5px;">HORÁRIOS DE TREINOS</div>
-        <div class="neon-line" style="width:180px; margin: 0 auto 90px auto;"></div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    horarios = sorted([doc.to_dict() for doc in col_horarios.stream()], key=lambda x: x.get('ordem', 0))
-    dias = {}
+    st.subheader("Horário de Treinos")
+    horarios = obter_horarios()
     for h in horarios:
-        if h['dia'] not in dias:
-            dias[h['dia']] = []
-        dias[h['dia']].append(h)
+        st.write(f"**{h['dia']}** - {h['horario']}")
 
-    cols = st.columns(3)
-    col_index = 0
-    for dia, aulas in dias.items():
-        with cols[col_index % 3]:
-            st.markdown(f"""
-            <div style="background: linear-gradient(180deg, #1A1A1A 0%, #0F0F0F 100%); border: 2px solid #32FF7E; padding: 45px;
-                        margin-bottom: 45px; box-shadow: 0 0 30px rgba(50,255,126,0.18);">
-                <div style="font-family:'Montserrat'; font-size:16px; background: linear-gradient(90deg, #32FF7E 0%, #FFD700 100%);
-                            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-                            letter-spacing: 5px; font-weight: 800; margin-bottom: 35px; text-align: center;">
-                    {dia.upper()}
-                </div>
-            """, unsafe_allow_html=True)
-            for aula in aulas:
-                st.markdown(f"""
-                <div style="margin-bottom: 30px; text-align: center;">
-                    <div style="font-family:'Playfair Display'; font-size:36px; color:#FFFFFF; font-weight:700; margin-bottom: 12px;">
-                        {aula['horario']}
-                    </div>
-                    <div style="font-family:'Montserrat'; font-size:18px; color:#CCCCCC; letter-spacing: 2px;">
-                        {aula['turma']}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-        col_index += 1
+# LOGIN ADMIN
+elif st.session_state.show_admin and not st.session_state.logged_in:
+    st.title("Painel do Mestre - Login")
+    with st.form("admin_login_form"):
+        email = st.text_input("Email Admin")
+        senha = st.text_input("Senha Admin", type="password")
+        submitted = st.form_submit_button("ENTRAR")
+        if submitted:
+            login_aluno(email, senha)
 
-    st.markdown("""
-    <div style="background: #000; border-top: 1px solid #222; padding: 40px; margin: 100px -1rem -2rem -1rem; text-align: center;">
-        <div style="font-family:'Montserrat'; font-size:13px; color:#555; letter-spacing: 3px;">
-            © 2026 JDA PIÇARRAS
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ===== LOGIN =====
-elif st.session_state.pagina == 'login':
-    st.markdown('<div class="section-title">LOGIN</div>', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        email = st.text_input("EMAIL")
-        senha = st.text_input("SENHA", type="password")
-        col_btn1, col_btn2 = st.columns(2)
-        with col_btn1:
-            if st.button("ENTRAR", use_container_width=True):
-                usuario_doc = col_alunos.document(email).get()
-                if usuario_doc.exists:
-                    usuario = usuario_doc.to_dict()
-                    if usuario['senha'] == hash_senha(senha):
-                        if usuario.get('status') == 'pendente':
-                            st.error("SUA CONTA AINDA NÃO FOI APROVADA PELO MESTRE JDA!")
-                        else:
-                            if usuario['senha'] == hash_senha(f"{email.split('@')[0]}JDA{datetime.now().year}"):
-                                st.session_state.forcar_troca_senha = True
-                            usuario['id'] = email
-                            st.session_state.usuario = usuario
-                            st.session_state.pagina = 'admin' if usuario.get('role') == 'admin' else 'aluno'
-                            st.rerun()
-                    else:
-                        st.error("EMAIL OU SENHA INCORRETOS!")
-                else:
-                    st.error("EMAIL OU SENHA INCORRETOS!")
-        with col_btn2:
-            if st.button("VOLTAR", use_container_width=True):
-                st.session_state.pagina = 'home'
-                st.rerun()
-
-# ===== REGISTRO =====
-elif st.session_state.pagina == 'registro':
-    st.markdown('<div class="section-title">REGISTRO DE ALUNO</div>', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        nome = st.text_input("NOME COMPLETO")
-        email = st.text_input("EMAIL")
-        senha = st.text_input("SENHA", type="password")
-        telefone = st.text_input("TELEFONE WHATSAPP")
-
-        taxa_cadastro = float(get_config('taxa_cadastro'))
-        chave_pix = get_config('chave_pix')
-
-        st.markdown(f"""
-        <div class="pix-box">
-            <div style="font-family:'Montserrat'; font-size:14px; color:#32FF7E; letter-spacing: 2px; font-weight: 700; margin-bottom: 15px;">
-                TAXA DE CADASTRO: R$ {taxa_cadastro:.2f}
-            </div>
-            <div style="font-family:'Montserrat'; font-size:14px; color:#CCC; margin-bottom: 10px;">
-                FAÇA O PAGAMENTO VIA PIX PARA LIBERAR SEU CADASTRO:
-            </div>
-            <div style="font-family:'Montserrat'; font-size:16px; color:#FFFFFF; font-weight: 700; background: #000; padding: 12px; border: 1px solid #333;">
-                {chave_pix}
-            </div>
-            <div style="font-family:'Montserrat'; font-size:12px; color:#999; margin-top: 10px;">
-                ENVIE O COMPROVANTE PARA O MESTRE JDA APÓS O REGISTRO
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.button("SOLICITAR CADASTRO", use_container_width=True):
-            if nome and email and senha and telefone:
-                if col_alunos.document(email).get().exists:
-                    st.error("EMAIL JÁ CADASTRADO!")
-                else:
-                    col_alunos.document(email).set({
-                        'nome': nome, 'email': email, 'senha': hash_senha(senha), 'telefone': telefone,
-                        'data_cadastro': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                        'status': 'pendente', 'graduacao': 'Iniciante', 'paga_mensalidade': 0,
-                        'taxa_cadastro_paga': 0, 'role': 'aluno'
-                    })
-                    st.success("CADASTRO REALIZADO! ENVIE O COMPROVANTE DO PIX PARA O MESTRE JDA APROVAR SEU ACESSO.")
-            else:
-                st.error("PREENCHA TODOS OS CAMPOS!")
-        if st.button("VOLTAR PARA HOME", use_container_width=True):
-            st.session_state.pagina = 'home'
-            st.rerun()
-
-# ===== RECUPERAR SENHA =====
-elif st.session_state.pagina == 'esqueci_senha':
-    st.markdown('<div class="section-title">RECUPERAR SENHA</div>', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        email_recuperar = st.text_input("DIGITE SEU EMAIL CADASTRADO")
-        if st.button("GERAR SENHA TEMPORÁRIA", use_container_width=True):
-            if email_recuperar:
-                usuario_doc = col_alunos.document(email_recuperar).get()
-                if usuario_doc.exists:
-                    nova_senha_temp = f"{email_recuperar.split('@')[0]}JDA{datetime.now().year}"
-                    col_alunos.document(email_recuperar).update({'senha': hash_senha(nova_senha_temp)})
-                    st.success(f"SENHA TEMPORÁRIA GERADA: {nova_senha_temp}")
-                    st.info("USE ESSA SENHA NO LOGIN. VOCÊ SERÁ OBRIGADO A TROCAR NA PRIMEIRA ENTRADA.")
-                else:
-                    st.error("EMAIL NÃO ENCONTRADO!")
-            else:
-                st.error("DIGITE SEU EMAIL!")
-        if st.button("VOLTAR AO LOGIN", use_container_width=True):
-            st.session_state.pagina = 'login'
-            st.rerun()
-            # ===== PAINEL ADMIN =====
-elif st.session_state.pagina == 'admin':
-    usuario = st.session_state.usuario
-    if not usuario or usuario.get('role')!= 'admin':
-        st.error("ACESSO NEGADO! VOCÊ NÃO É ADMINISTRADOR.")
-        st.session_state.pagina = 'home'
+    if st.button("VOLTAR"):
+        st.session_state.show_admin = False
         st.rerun()
 
-    st.markdown('<div class="section-title">PAINEL MESTRE JDA</div>', unsafe_allow_html=True)
-    aba = st.radio("", ["ALUNOS PENDENTES", "ALUNOS ATIVOS", "GRADUAÇÃO", "GOLPES", "HORÁRIOS", "LOJA", "PEDIDOS", "CONFIGURAÇÕES"], horizontal=True)
+# PAINEL ADMIN LOGADO - SIDEBAR NATIVA
+elif st.session_state.logged_in and not st.session_state.must_change_password and st.session_state.user_data.get('role') == 'admin':
 
-    if aba == "ALUNOS PENDENTES":
-        st.markdown('<div class="section-title">ALUNOS AGUARDANDO APROVAÇÃO</div>', unsafe_allow_html=True)
-        pendentes = [doc for doc in col_alunos.where('status', '==', 'pendente').stream()]
-        if pendentes:
-            for aluno in pendentes:
-                a = aluno.to_dict()
-                st.markdown(f"""
-                <div style="padding:30px 0; border-bottom:1px solid #333;">
-                    <div style="font-family:'Playfair Display'; font-size:32px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">{a['nome']}</div>
-                    <div style="font-family:'Montserrat'; color:#ccc; margin:12px 0;">{a['email']} | {a.get('telefone','')}</div>
-                    <div style="font-family:'Montserrat'; color:#FFD700;">TAXA CADASTRO: {'PAGA' if a.get('taxa_cadastro_paga') else 'PENDENTE'}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                taxa_paga = st.checkbox("CONFIRMAR PAGAMENTO TAXA", value=bool(a.get('taxa_cadastro_paga')), key=f"taxa_{aluno.id}")
+    # SIDEBAR NATIVA DO STREAMLIT
+    with st.sidebar:
+        st.title("Painel Mestre")
+        st.session_state.admin_page = st.radio(
+            "Menu",
+            ["Dashboard", "Horários", "Loja", "Golpes", "Alunos", "Configurações"]
+        )
+        st.divider()
+        if st.button("Sair"):
+            logout()
+
+    # CONTEÚDO PRINCIPAL DO ADMIN
+    st.header(f"{st.session_state.admin_page}")
+
+    # DASHBOARD
+    if st.session_state.admin_page == "Dashboard":
+        alunos = list(db.collection('alunos').stream())
+        total_alunos = len([a for a in alunos if a.to_dict().get('role') == 'aluno'])
+        alunos_ativos = len([a for a in alunos if a.to_dict().get('status') == 'ativo'])
+        alunos_pendentes = len([a for a in alunos if a.to_dict().get('status') == 'pendente'])
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total Capoeiristas", total_alunos)
+        col2.metric("Ativos", alunos_ativos)
+        col3.metric("Pendentes", alunos_pendentes)
+
+    # EDITAR HORÁRIOS
+    elif st.session_state.admin_page == "Horários":
+        st.subheader("Editar Horários de Treino")
+        horarios = obter_horarios()
+
+        with st.form("form_horarios"):
+            novos_horarios = []
+            for i in range(3):
+                dia_atual = horarios[i]["dia"] if i < len(horarios) else ""
+                horario_atual = horarios[i]["horario"] if i < len(horarios) else ""
                 col1, col2 = st.columns(2)
-                with col1:
-                    if st.button(f"APROVAR ALUNO", key=f"aprov_{aluno.id}", use_container_width=True):
-                        col_alunos.document(aluno.id).update({'status': 'ativo', 'taxa_cadastro_paga': 1 if taxa_paga else 0})
-                        st.rerun()
-                with col2:
-                    if st.button(f"REJEITAR", key=f"rej_{aluno.id}", use_container_width=True):
-                        col_alunos.document(aluno.id).delete()
-                        st.warning("ALUNO REJEITADO!")
-                        st.rerun()
-        else:
-            st.info("NENHUM ALUNO PENDENTE")
+                dia = col1.text_input(f"Dia {i+1}", value=dia_atual)
+                horario = col2.text_input(f"Horário {i+1}", value=horario_atual)
+                novos_horarios.append({"dia": dia, "horario": horario})
 
-    elif aba == "ALUNOS ATIVOS":
-        st.markdown('<div class="section-title">ALUNOS ATIVOS</div>', unsafe_allow_html=True)
-        ativos = [doc for doc in col_alunos.where('status', '==', 'ativo').where('role', '==', 'aluno').stream()]
-        if ativos:
-            for aluno in ativos:
-                a = aluno.to_dict()
-                if a.get('foto_path'):
-                    st.image(base64.b64decode(a['foto_path']), width=80)
-                else:
-                    st.markdown('<div style="width:80px;height:80px;border-radius:50%;background:#222;border:2px solid #32FF7E;display:flex;align-items:center;justify-content:center;color:#32FF7E;">JDA</div>', unsafe_allow_html=True)
-                st.markdown(f"""
-                <div style="padding:30px 0; border-bottom:1px solid #333;">
-                    <div style="font-family:'Playfair Display'; font-size:32px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">{a['nome']}</div>
-                    <div style="font-family:'Montserrat'; color:#ccc;">Graduação: {a.get('graduacao','Iniciante')} | Mensalidade: {'ATIVA' if a.get('paga_mensalidade') else 'INATIVA'}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                paga_mensal = st.checkbox("PAGA MENSALIDADE", value=bool(a.get('paga_mensalidade')), key=f"mens_{aluno.id}")
-                if st.button("SALVAR", key=f"save_mens_{aluno.id}"):
-                    col_alunos.document(aluno.id).update({'paga_mensalidade': 1 if paga_mensal else 0})
-                    st.success("ATUALIZADO!")
-                    st.rerun()
-        else:
-            st.info("NENHUM ALUNO ATIVO")
+            if st.form_submit_button("SALVAR HORÁRIOS"):
+                salvar_horarios(novos_horarios)
+                st.success("Horários salvos!")
 
-    elif aba == "GOLPES":
-        st.markdown('<div class="section-title">GESTÃO DE GOLPES POR GRADUAÇÃO</div>', unsafe_allow_html=True)
-        graduacoes = get_graduacoes()
-        GRADUACOES_NOMES = [g[1] for g in graduacoes]
+    # EDITAR LOJA
+    elif st.session_state.admin_page == "Loja":
+        st.subheader("Editar Produtos da Loja")
+        produtos = obter_produtos_loja()
 
-        with st.container():
-            grad_selecionada = st.selectbox("SELECIONE A GRADUAÇÃO", GRADUACOES_NOMES, key="grad_select_golpes")
+        with st.form("form_loja"):
+            novos_produtos = []
+            for i in range(3):
+                nome_atual = produtos[i]["nome"] if i < len(produtos) else ""
+                preco_atual = float(produtos[i]["preco"]) if i < len(produtos) else 0.0
+                desc_atual = produtos[i]["descricao"] if i < len(produtos) else ""
 
-            with st.form(key="form_add_golpe", clear_on_submit=True):
-                st.markdown("### ADICIONAR GOLPE/MOVIMENTO")
-                col1, col2, col3 = st.columns([2,2,1])
-                with col1:
-                    tipo_item = st.selectbox("TIPO", ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"], key="tipo_select_form")
-                with col2:
-                    nome_item = st.text_input("NOME DO GOLPE", placeholder="Ex: Meia-lua de frente", key="nome_golpe_form")
-                with col3:
-                    st.write("")
-                    st.write("")
-                    submit_btn = st.form_submit_button("ADICIONAR", use_container_width=True)
+                st.write(f"Produto {i+1}")
+                col1, col2, col3 = st.columns(3)
+                nome = col1.text_input(f"Nome {i+1}", value=nome_atual)
+                preco = col2.number_input(f"Preço {i+1}", value=preco_atual)
+                desc = col3.text_input(f"Descrição {i+1}", value=desc_atual)
+                novos_produtos.append({"nome": nome, "preco": preco, "descricao": desc})
 
-            if submit_btn and nome_item and nome_item.strip():
-                golpes_grad = [g for g in col_progressao.where('graduacao','==',grad_selecionada).stream()]
-                max_ordem = max([g.to_dict().get('ordem',0) for g in golpes_grad], default=0)
-                col_progressao.add({
-                    'graduacao': grad_selecionada, 'tipo': tipo_item.lower(),
-                    'nome': nome_item.strip(), 'ordem': max_ordem + 1
-                })
-                st.success(f"GOLPE '{nome_item}' ADICIONADO EM {grad_selecionada}!")
-                st.rerun()
+            if st.form_submit_button("SALVAR PRODUTOS"):
+                salvar_produtos_loja(novos_produtos)
+                st.success("Produtos salvos!")
 
-            st.markdown(f"### GOLPES PARA {grad_selecionada.upper()}")
-            tipos = ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"]
-            for tipo in tipos:
-                itens = sorted([g for g in col_progressao.where('graduacao','==',grad_selecionada).where('tipo','==',tipo.lower()).stream()],
-                               key=lambda x: x.to_dict().get('ordem',0))
-                if itens:
-                    st.markdown(f"#### {tipo} ({len(itens)}/25)")
-                    for item in itens:
-                        i = item.to_dict()
-                        col1, col2 = st.columns([4,1])
-                        col1.write(f"{i['nome']}")
-                        if col2.button("EXCLUIR", key=f"del_prog_{item.id}"):
-                            col_progressao.document(item.id).delete()
-                            st.success("GOLPE EXCLUÍDO!")
-                            st.rerun()
-                else:
-                    st.info(f"NENHUM {tipo} CADASTRADO PARA {grad_selecionada}")
+    # EDITAR GOLPES
+    elif st.session_state.admin_page == "Golpes":
+        st.subheader("Editar 25 Golpes por Graduação")
+        graduacao_selecionada = st.selectbox("Selecione a Graduação", GRADUACOES_CAPOEIRA)
+        golpes = obter_golpes_por_graduacao(graduacao_selecionada)
 
-    elif aba == "GRADUAÇÃO":
-        st.markdown('<div class="section-title">APROVAR GRADUAÇÃO</div>', unsafe_allow_html=True)
-        graduacoes = get_graduacoes()
-        GRADUACOES_NOMES = [g[1] for g in graduacoes]
-        alunos = [doc for doc in col_alunos.where('status', '==', 'ativo').where('role', '==', 'aluno').stream()]
-        if alunos:
-            for aluno in alunos:
-                a = aluno.to_dict()
-                grad_atual = a.get('graduacao','Iniciante')
-                idx_atual = GRADUACOES_NOMES.index(grad_atual) if grad_atual in GRADUACOES_NOMES else 0
-                proxima_grad = GRADUACOES_NOMES[idx_atual + 1] if idx_atual + 1 < len(GRADUACOES_NOMES) else None
+        with st.form(f"form_golpes_{graduacao_selecionada}"):
+            novos_golpes = []
+            for i in range(25):
+                nome_atual = golpes[i]["nome"] if i < len(golpes) else f"Golpe {i+1}"
+                desc_atual = golpes[i]["descricao"] if i < len(golpes) else ""
+                col1, col2 = st.columns(2)
+                nome = col1.text_input(f"Golpe {i+1}", value=nome_atual, key=f"golpe_nome_{i}")
+                desc = col2.text_input(f"Descrição {i+1}", value=desc_atual, key=f"golpe_desc_{i}")
+                novos_golpes.append({"nome": nome, "descricao": desc})
 
-                if proxima_grad:
-                    st.markdown(f"""
-                    <div style="padding:30px 0; border-bottom:1px solid #333;">
-                        <div style="font-family:'Playfair Display'; font-size:32px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">{a['nome']}</div>
-                        <div style="font-family:'Montserrat'; color:#ccc;">Graduação Atual: {grad_atual} → Próxima: {proxima_grad}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    if st.button(f"PROMOVER PARA {proxima_grad.upper()}", key=f"prom_{aluno.id}", use_container_width=True):
-                        col_alunos.document(aluno.id).update({'graduacao': proxima_grad})
-                        st.success(f"{a['nome']} PROMOVIDO PARA {proxima_grad}!")
-                        st.rerun()
-                else:
-                    st.markdown(f"""
-                    <div style="padding:30px 0; border-bottom:1px solid #333;">
-                        <div style="font-family:'Playfair Display'; font-size:32px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">{a['nome']}</div>
-                        <div style="font-family:'Montserrat'; color:#FFD700;">GRADUAÇÃO: MESTRE - MÁXIMA</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-        else:
-            st.info("NENHUM ALUNO ATIVO PARA PROMOVER")
+            if st.form_submit_button("SALVAR 25 GOLPES"):
+                salvar_golpes_por_graduacao(graduacao_selecionada, novos_golpes)
+                st.success(f"Golpes salvos para {graduacao_selecionada}")
 
-    elif aba == "HORÁRIOS":
-        st.markdown('<div class="section-title">GESTÃO DE HORÁRIOS</div>', unsafe_allow_html=True)
-        with st.expander("ADICIONAR HORÁRIO"):
-            col1, col2, col3 = st.columns(3)
-            novo_dia = col1.text_input("DIA DA SEMANA", key="novo_dia")
-            nova_turma = col2.text_input("NOME DA TURMA", key="nova_turma")
-            novo_horario = col3.text_input("HORÁRIO", key="novo_horario")
-            if st.button("ADICIONAR", key="btn_add_horario"):
-                if novo_dia and nova_turma and novo_horario:
-                    horarios = list(col_horarios.stream())
-                    max_ordem = max([h.to_dict().get('ordem',0) for h in horarios], default=0)
-                    col_horarios.add({'dia': novo_dia, 'turma': nova_turma, 'horario': novo_horario, 'ordem': max_ordem + 1})
-                    st.success("HORÁRIO ADICIONADO!")
-                    st.rerun()
+    # GERENCIAR ALUNOS
+    elif st.session_state.admin_page == "Alunos":
+        st.subheader("Gerenciar Alunos")
+        alunos = list(db.collection('alunos').stream())
+        alunos_lista = []
+        for aluno in alunos:
+            dados = aluno.to_dict()
+            dados['id'] = aluno.id
+            if dados.get('role') == 'aluno':
+                alunos_lista.append(dados)
 
-        horarios = sorted([doc for doc in col_horarios.stream()], key=lambda x: x.to_dict().get('ordem',0))
-        for h in horarios:
-            h_data = h.to_dict()
-            st.markdown(f"""
-            <div style="padding:25px 0; border-bottom:1px solid #333;">
-                <div style="font-family:'Montserrat'; font-size:13px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">{h_data['dia'].upper()}</div>
-                <div style="font-family:'Playfair Display'; font-size:32px; color:#fff;">{h_data['turma']}</div>
-                <div style="font-family:'Montserrat'; font-size:22px; color:#999;">{h_data['horario']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col1, col2, col3 = st.columns([3,3,1])
-            dia_edit = col1.text_input("DIA", value=h_data['dia'], key=f"dia_{h.id}")
-            turma_edit = col2.text_input("TURMA", value=h_data['turma'], key=f"turma_{h.id}")
-            horario_edit = col3.text_input("HORÁRIO", value=h_data['horario'], key=f"hor_{h.id}")
-            if st.button("SALVAR", key=f"save_{h.id}", use_container_width=True):
-                col_horarios.document(h.id).update({'dia': dia_edit, 'turma': turma_edit, 'horario': horario_edit})
-                st.success("ATUALIZADO!")
-                st.rerun()
-            if st.button("EXCLUIR", key=f"del_{h.id}", use_container_width=True):
-                col_horarios.document(h.id).delete()
-                st.success("HORÁRIO EXCLUÍDO!")
-                st.rerun()
+        if alunos_lista:
+            df = pd.DataFrame(alunos_lista)
+            st.dataframe(df[['nome', 'email', 'graduacao', 'status']])
 
-    elif aba == "LOJA":
-        st.markdown('<div class="section-title">GESTÃO DA LOJA</div>', unsafe_allow_html=True)
-        with st.expander("ADICIONAR PRODUTO"):
-            nome_prod = st.text_input("NOME DO PRODUTO", key="nome_prod")
-            categoria_prod = st.selectbox("CATEGORIA", ["CAMISA", "INSTRUMENTO", "ACESSORIO", "OUTROS"], key="cat_prod")
-            preco_prod = st.number_input("PREÇO", min_value=0.0, step=0.50, key="preco_prod")
-            estoque_prod = st.number_input("ESTOQUE", min_value=0, step=1, key="estoque_prod")
-            descricao_prod = st.text_area("DESCRIÇÃO", key="desc_prod")
-            imagem_prod = st.file_uploader("IMAGEM", type=['jpg', 'jpeg', 'png'], key="img_prod")
-            if st.button("ADICIONAR PRODUTO", key="btn_add_prod"):
-                if nome_prod and preco_prod > 0:
-                    imagem_bytes = resize_image(imagem_prod) if imagem_prod else None
-                    produtos = list(col_produtos.stream())
-                    max_ordem = max([p.to_dict().get('ordem',0) for p in produtos], default=0)
-                    col_produtos.add({
-                        'nome': nome_prod, 'categoria': categoria_prod, 'preco': preco_prod,
-                        'estoque': estoque_prod, 'descricao': descricao_prod, 'imagem_url': imagem_bytes,
-                        'ativo': 1, 'ordem': max_ordem + 1
-                    })
-                    st.success("PRODUTO ADICIONADO!")
-                    st.rerun()
-
-        produtos = sorted([doc for doc in col_produtos.stream()], key=lambda x: x.to_dict().get('ordem',0))
-        for prod in produtos:
-            p = prod.to_dict()
-            if p.get('imagem_url'):
-                st.image(base64.b64decode(p['imagem_url']), width=200)
-            st.markdown(f"""
-            <div style="padding:30px 0; border-bottom:1px solid #333;">
-                <div style="font-family:'Playfair Display'; font-size:32px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">{p['nome']}</div>
-                <div style="font-family:'Montserrat'; color:#ccc;">R$ {p['preco']:.2f} | Estoque: {p['estoque']}</div>
-                <div style="font-family:'Montserrat'; color:#999;">{p['descricao']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col1, col2 = st.columns([2,1])
-            nome_edit = col1.text_input("NOME", value=p['nome'], key=f"pn_{prod.id}")
-            preco_edit = col2.number_input("PREÇO", value=float(p['preco']), key=f"pp_{prod.id}")
-            estoque_edit = col1.number_input("ESTOQUE", value=int(p['estoque']), key=f"pe_{prod.id}")
-            ativo_edit = col2.checkbox("ATIVO", value=bool(p['ativo']), key=f"pa_{prod.id}")
-            if st.button("SALVAR", key=f"ps_{prod.id}", use_container_width=True):
-                col_produtos.document(prod.id).update({
-                    'nome': nome_edit, 'preco': preco_edit, 'estoque': estoque_edit, 'ativo': 1 if ativo_edit else 0
-                })
-                st.success("ATUALIZADO!")
-                st.rerun()
-            if st.button("EXCLUIR", key=f"pdel_{prod.id}", use_container_width=True):
-                col_produtos.document(prod.id).delete()
-                st.success("PRODUTO EXCLUÍDO!")
-                st.rerun()
-
-    elif aba == "PEDIDOS":
-        st.markdown('<div class="section-title">PEDIDOS RECEBIDOS</div>', unsafe_allow_html=True)
-        pedidos = sorted([doc for doc in col_pedidos.stream()], key=lambda x: x.to_dict().get('data_pedido',''), reverse=True)
-        if pedidos:
-            for pedido in pedidos:
-                p = pedido.to_dict()
-                aluno_doc = col_alunos.document(p['aluno_id']).get()
-                aluno_nome = aluno_doc.to_dict()['nome'] if aluno_doc.exists else "ALUNO REMOVIDO"
-                st.markdown(f"""
-                <div style="padding:30px 0; border-bottom:1px solid #333;">
-                    <div style="font-family:'Playfair Display'; font-size:32px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">PEDIDO #{pedido.id} - {aluno_nome}</div>
-                    <div style="font-family:'Montserrat'; color:#ccc;">R$ {p['total']:.2f} | {p['status'].upper()} | {p['data_pedido']}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                itens = [doc.to_dict() for doc in col_itens_pedido.where('pedido_id', '==', pedido.id).stream()]
-                for item in itens:
-                    prod_doc = col_produtos.document(item['produto_id']).get()
-                    prod_nome = prod_doc.to_dict()['nome'] if prod_doc.exists else "PRODUTO REMOVIDO"
-                    st.write(f"- {item['quantidade']}x {prod_nome} - R$ {item['preco_unitario']:.2f}")
-                novo_status = st.selectbox("STATUS", ["pendente", "pago", "enviado", "entregue"],
-                                           index=["pendente", "pago", "enviado", "entregue"].index(p['status']), key=f"st_{pedido.id}")
-                if st.button("ATUALIZAR STATUS", key=f"stb_{pedido.id}"):
-                    col_pedidos.document(pedido.id).update({'status': novo_status})
-                    st.success("STATUS ATUALIZADO!")
-                    st.rerun()
-        else:
-            st.info("NENHUM PEDIDO RECEBIDO")
-
-    elif aba == "CONFIGURAÇÕES":
-        st.markdown('<div class="section-title">CONFIGURAÇÕES DO SISTEMA</div>', unsafe_allow_html=True)
-        taxa_atual = float(get_config('taxa_cadastro'))
-        nova_taxa = st.number_input("VALOR DA TAXA DE CADASTRO (R$)", value=taxa_atual, min_value=0.0, step=5.0)
-        chave_pix_atual = get_config('chave_pix')
-        nova_chave_pix = st.text_input("CHAVE PIX", value=chave_pix_atual)
-        if st.button("SALVAR CONFIGURAÇÕES"):
-            set_config('taxa_cadastro', nova_taxa)
-            set_config('chave_pix', nova_chave_pix)
-            st.success("CONFIGURAÇÕES SALVAS!")
-
-    if st.button("SAIR", use_container_width=True):
-        st.session_state.usuario = None
-        st.session_state.pagina = 'home'
-        st.rerun()
-
-# ===== PAINEL ALUNO =====
-elif st.session_state.pagina == 'aluno':
-    usuario = st.session_state.usuario
-
-    # BLOQUEIA ADMIN DE ENTRAR NO PAINEL DE ALUNO
-    if usuario.get('role') == 'admin':
-        st.session_state.pagina = 'admin'
-        st.rerun()
-
-    if st.session_state.forcar_troca_senha:
-        st.markdown('<div class="section-title">TROCAR SENHA TEMPORÁRIA</div>', unsafe_allow_html=True)
-        col1, col2, col3 = st.columns([1,2,1])
-        with col2:
-            nova_senha = st.text_input("NOVA SENHA", type="password")
-            confirmar_senha = st.text_input("CONFIRMAR SENHA", type="password")
-            if st.button("SALVAR NOVA SENHA", use_container_width=True):
-                if nova_senha and nova_senha == confirmar_senha:
-                    col_alunos.document(usuario['id']).update({'senha': hash_senha(nova_senha)})
-                    st.session_state.forcar_troca_senha = False
-                    st.success("SENHA ALTERADA! FAÇA LOGIN NOVAMENTE.")
-                    st.session_state.usuario = None
-                    st.session_state.pagina = 'home'
-                    st.rerun()
-                else:
-                    st.error("SENHAS NÃO CONFEREM!")
-        st.stop()
-
-    st.markdown('<div class="section-title">PAINEL DO ALUNO</div>', unsafe_allow_html=True)
-    aba = st.radio("", ["MEU PERFIL", "PROGRESSÃO", "LOJA", "MEUS PEDIDOS"], horizontal=True)
-
-    if aba == "MEU PERFIL":
-        st.markdown('<div class="section-title">MEU PERFIL</div>', unsafe_allow_html=True)
-        col1, col2 = st.columns([1,3])
-        with col1:
-            if usuario.get('foto_path'):
-                st.image(base64.b64decode(usuario['foto_path']), width=150)
-            else:
-                st.markdown('<div style="width:150px;height:150px;border-radius:50%;background:#222;border:3px solid #32FF7E;display:flex;align-items:center;justify-content:center;color:#32FF7E;font-size:48px;font-family:Playfair Display;">JDA</div>', unsafe_allow_html=True)
-            foto_upload = st.file_uploader("ENVIAR FOTO", type=['jpg', 'jpeg', 'png'], key="foto_perfil")
-            if foto_upload:
-                foto_bytes = resize_image(foto_upload)
-                col_alunos.document(usuario['id']).update({'foto_path': foto_bytes})
-                st.success("FOTO ATUALIZADA!")
-                st.rerun()
-        with col2:
-            st.markdown(f"""
-            <div style="padding:30px 0;">
-                <div style="font-family:'Playfair Display'; font-size:40px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">{usuario['nome']}</div>
-                <div style="font-family:'Montserrat'; color:#ccc; margin:15px 0;">{usuario['email']} | {usuario.get('telefone','')}</div>
-                <div style="font-family:'Montserrat'; color:#32FF7E; font-weight:700; font-size:16px;">GRADUAÇÃO: {usuario.get('graduacao','Iniciante')}</div>
-                <div style="font-family:'Montserrat'; color:#ccc; font-size:16px;">STATUS MENSALIDADE: {'ATIVA' if usuario.get('paga_mensalidade') else 'INATIVA'}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    elif aba == "PROGRESSÃO":
-        st.markdown('<div class="section-title">MINHA PROGRESSÃO</div>', unsafe_allow_html=True)
-        grad_atual = usuario.get('graduacao','Iniciante')
-        tipos = ["MOVIMENTO", "BERIMBAU", "PANDEIRO", "ATRIBUTO"]
-        for tipo in tipos:
-            itens = sorted([g.to_dict() for g in col_progressao.where('graduacao','==',grad_atual).where('tipo','==',tipo.lower()).stream()],
-                           key=lambda x: x.get('ordem',0))
-            if itens:
-                st.markdown(f"### {tipo} ({len(itens)}/25)")
-                for item in itens:
-                    st.checkbox(item['nome'], key=f"prog_aluno_{item['nome']}", disabled=True)
-            else:
-                st.info(f"NENHUM {tipo} CADASTRADO PARA {grad_atual}")
-
-    elif aba == "LOJA":
-        st.markdown('<div class="section-title">LOJA JDA</div>', unsafe_allow_html=True)
-        chave_pix = get_config('chave_pix')
-        st.info(f"PIX PARA PAGAMENTO: {chave_pix}")
-
-        # CARRINHO
-        if st.session_state.carrinho:
-            st.markdown("### SEU CARRINHO")
-            total_carrinho = 0
-            for i, item in enumerate(st.session_state.carrinho):
+            st.subheader("Alunos Pendentes")
+            pendentes = [a for a in alunos_lista if a['status'] == 'pendente']
+            for aluno in pendentes:
                 col1, col2 = st.columns([4,1])
-                col1.write(f"{item['nome']} - R$ {item['preco']:.2f}")
-                if col2.button("REMOVER", key=f"rem_{i}"):
-                    st.session_state.carrinho.pop(i)
+                col1.write(f"{aluno['nome']} - {aluno['graduacao']}")
+                if col2.button("APROVAR", key=f"aprov_{aluno['email']}"):
+                    aprovar_aluno(aluno['email'])
                     st.rerun()
-                total_carrinho += item['preco']
-            st.markdown(f"**TOTAL: R$ {total_carrinho:.2f}**")
-            if st.button("FINALIZAR PEDIDO", use_container_width=True):
-                pedido_ref = col_pedidos.add({
-                    'aluno_id': usuario['id'],
-                    'total': total_carrinho,
-                    'status': 'pendente',
-                    'data_pedido': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                })[1]
-                for item in st.session_state.carrinho:
-                    col_itens_pedido.add({
-                        'pedido_id': pedido_ref.id,
-                        'produto_id': item['id'],
-                        'quantidade': 1,
-                        'preco_unitario': item['preco']
-                    })
-                    # DIMINUIR ESTOQUE
-                    prod_doc = col_produtos.document(item['id']).get()
-                    if prod_doc.exists:
-                        estoque_atual = prod_doc.to_dict().get('estoque', 0)
-                        col_produtos.document(item['id']).update({'estoque': max(0, estoque_atual - 1)})
-                st.session_state.carrinho = []
-                st.success("PEDIDO REALIZADO COM SUCESSO!")
-                st.rerun()
-
-        # LISTA PRODUTOS
-        st.markdown("### PRODUTOS DISPONÍVEIS")
-        produtos = sorted([doc for doc in col_produtos.where('ativo', '==', 1).stream()], key=lambda x: x.to_dict().get('ordem',0))
-        for prod in produtos:
-            p = prod.to_dict()
-            if p.get('imagem_url'):
-                st.image(base64.b64decode(p['imagem_url']), width=200)
-            st.markdown(f"""
-            <div style="padding:30px 0; border-bottom:1px solid #333;">
-                <div style="font-family:'Playfair Display'; font-size:32px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">{p['nome']}</div>
-                <div style="font-family:'Montserrat'; color:#ccc;">R$ {p['preco']:.2f} | Estoque: {p['estoque']}</div>
-                <div style="font-family:'Montserrat'; color:#999;">{p['descricao']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            if p['estoque'] > 0:
-                if st.button("ADICIONAR AO CARRINHO", key=f"cart_{prod.id}", use_container_width=True):
-                    st.session_state.carrinho.append({'id': prod.id, 'nome': p['nome'], 'preco': p['preco']})
-                    st.success(f"{p['nome']} ADICIONADO AO CARRINHO!")
-                    st.rerun()
-            else:
-                st.warning("PRODUTO ESGOTADO")
-
-    elif aba == "MEUS PEDIDOS":
-        st.markdown('<div class="section-title">MEUS PEDIDOS</div>', unsafe_allow_html=True)
-        meus_pedidos = sorted([doc for doc in col_pedidos.where('aluno_id', '==', usuario['id']).stream()],
-                              key=lambda x: x.to_dict().get('data_pedido',''), reverse=True)
-        if meus_pedidos:
-            for pedido in meus_pedidos:
-                p = pedido.to_dict()
-                st.markdown(f"""
-                <div style="padding:30px 0; border-bottom:1px solid #333;">
-                    <div style="font-family:'Playfair Display'; font-size:32px; color:#32FF7E; text-shadow: 0 0 10px #32FF7E;">PEDIDO #{pedido.id}</div>
-                    <div style="font-family:'Montserrat'; color:#ccc;">R$ {p['total']:.2f} | {p['status'].upper()} | {p['data_pedido']}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                itens = [doc.to_dict() for doc in col_itens_pedido.where('pedido_id', '==', pedido.id).stream()]
-                for item in itens:
-                    prod_doc = col_produtos.document(item['produto_id']).get()
-                    prod_nome = prod_doc.to_dict()['nome'] if prod_doc.exists else "PRODUTO REMOVIDO"
-                    st.write(f"- {item['quantidade']}x {prod_nome} - R$ {item['preco_unitario']:.2f}")
         else:
-            st.info("VOCÊ AINDA NÃO FEZ NENHUM PEDIDO")
+            st.info("Nenhum aluno cadastrado")
 
-    if st.button("SAIR", use_container_width=True):
-        st.session_state.usuario = None
-        st.session_state.pagina = 'home'
-        st.session_state.carrinho = []
+    # CONFIGURAÇÕES
+    elif st.session_state.admin_page == "Configurações":
+        st.subheader("Configurações Gerais")
+        with st.form("config_form"):
+            nova_taxa = st.number_input("Taxa de Cadastro R$", value=float(obter_taxa_cadastro()))
+            nova_chave_pix = st.text_input("Chave PIX", value=obter_chave_pix())
+            if st.form_submit_button("SALVAR CONFIGURAÇÕES"):
+                db.collection('config').document('taxa_cadastro').set({'valor': nova_taxa})
+                db.collection('config').document('chave_pix').set({'valor': nova_chave_pix})
+                st.success("Configurações salvas!")
+
+# PORTAL DO ALUNO
+elif st.session_state.logged_in and not st.session_state.must_change_password and st.session_state.user_data.get('role') == 'aluno':
+    st.header(f"Portal do Capoeirista - {st.session_state.user_data['nome']}")
+    st.write(f"Graduação: {st.session_state.user_data['graduacao']}")
+
+    st.subheader("Meus Golpes")
+    golpes = obter_golpes_por_graduacao(st.session_state.user_data["graduacao"])
+    progresso = st.session_state.user_data.get('progresso_golpes', {}).get(st.session_state.user_data["graduacao"], [False] * 25)
+
+    with st.form("form_progresso"):
+        for i, golpe in enumerate(golpes):
+            checked = st.checkbox(f"{golpe['nome']} - {golpe['descricao']}", value=progresso[i] if i < len(progresso) else False)
+            if i < len(progresso):
+                progresso[i] = checked
+
+        if st.form_submit_button("SALVAR PROGRESSO"):
+            db.collection('alunos').document(st.session_state.user_data['email']).update({
+                f'progresso_golpes.{st.session_state.user_data["graduacao"]}': progresso
+            })
+            st.success("Progresso salvo!")
+            st.rerun()
+
+    if st.button("SAIR"):
+        logout()
+
+# TROCA DE SENHA OBRIGATÓRIA
+elif st.session_state.must_change_password:
+    st.title("Primeiro Acesso - Trocar Senha")
+    with st.form("trocar_senha_form"):
+        senha_atual = st.text_input("Senha Atual", type="password")
+        nova_senha = st.text_input("Nova Senha", type="password")
+        confirmar_senha = st.text_input("Confirmar Nova Senha", type="password")
+        submitted = st.form_submit_button("CONFIRMAR")
+
+        if submitted:
+            if nova_senha!= confirmar_senha:
+                st.error("As senhas não coincidem")
+            elif len(nova_senha) < 6:
+                st.error("Mínimo 6 caracteres")
+            else:
+                hash_atual = hashlib.sha256(senha_atual.encode()).hexdigest()
+                doc = db.collection('alunos').document(st.session_state.user_data['email']).get()
+                if doc.exists and doc.to_dict().get('senha') == hash_atual:
+                    novo_hash = hashlib.sha256(nova_senha.encode()).hexdigest()
+                    db.collection('alunos').document(st.session_state.user_data['email']).update({
+                        'senha': novo_hash,
+                        'primeiro_acesso': False
+                    })
+                    st.session_state.must_change_password = False
+                    st.success("Senha alterada")
+                    st.rerun()
+                else:
+                    st.error("Senha atual incorreta")
+
+# CADASTRO
+elif st.session_state.show_cadastro:
+    st.title("Inscrição JDA Piçarras")
+    with st.form("cadastro_form"):
+        nome = st.text_input("Nome Completo")
+        email = st.text_input("Email")
+        telefone = st.text_input("Telefone")
+        graduacao = st.selectbox("Graduação Atual", GRADUACOES_CAPOEIRA)
+
+        st.write(f"**Taxa de Cadastro: R$ {obter_taxa_cadastro():.2f}**")
+        st.write(f"**Chave PIX: {obter_chave_pix()}**")
+
+        taxa_paga = st.checkbox("Taxa paga via PIX")
+        mensalidade_paga = st.checkbox("Mensalidade paga")
+
+        submitted = st.form_submit_button("FINALIZAR INSCRIÇÃO")
+        if submitted:
+            if nome and email and telefone:
+                cadastrar_aluno(nome, email, graduacao, telefone, 1 if mensalidade_paga else 0, 1 if taxa_paga else 0)
+                st.success("Inscrição realizada! Aguarde aprovação do mestre.")
+                st.session_state.show_cadastro = False
+                st.rerun()
+            else:
+                st.error("Preencha todos os campos")
+
+    if st.button("VOLTAR"):
+        st.session_state.show_cadastro = False
+        st.rerun()
+
+# LOGIN ALUNO
+elif st.session_state.show_student_portal and not st.session_state.logged_in:
+    st.title("Portal do Capoeirista")
+    with st.form("login_form_aluno"):
+        email = st.text_input("Email")
+        senha = st.text_input("Senha", type="password")
+        submitted = st.form_submit_button("ENTRAR")
+        if submitted:
+            login_aluno(email, senha)
+
+    if st.button("VOLTAR"):
+        st.session_state.show_student_portal = False
         st.rerun()
