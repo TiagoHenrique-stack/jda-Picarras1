@@ -5,7 +5,7 @@ from datetime import datetime
 import hashlib
 import pandas as pd
 
-st.set_page_config(layout="wide", page_title="JDA PIÇARRAS - Painel Mestre", initial_sidebar_state="expanded")
+st.set_page_config(layout="wide", page_title="JDA PIÇARRAS - Painel Mestre", initial_sidebar_state="collapsed")
 
 # Inicialização do Firebase
 if not _apps:
@@ -163,6 +163,8 @@ if 'edit_index' not in st.session_state:
     st.session_state.edit_index = None
 if 'edit_type' not in st.session_state:
     st.session_state.edit_type = None
+if 'sidebar_visible' not in st.session_state:
+    st.session_state.sidebar_visible = False
 
 # CSS ESTILIZADO
 st.markdown("""
@@ -172,21 +174,77 @@ st.markdown("""
 header, #MainMenu, footer {visibility: hidden!important;}
 .stApp {background: #0a0a0a!important; font-family: 'Inter', sans-serif!important;}
 
+/* BOTÃO TOGGLE SIDEBAR */
+.sidebar-toggle {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 9999;
+    background: #000!important;
+    border: 2px solid #00ff88!important;
+    color: #00ff88!important;
+    padding: 8px 15px!important;
+    border-radius: 4px!important;
+    font-weight: 600!important;
+    letter-spacing: 1px!important;
+    cursor: pointer!important;
+}
+
+/* SIDEBAR */
 [data-testid="stSidebar"] {
     background: #0f0f0f!important;
     border-right: 1px solid rgba(0, 255, 136, 0.3)!important;
     padding: 30px 20px!important;
 }
 
-[data-testid="stSidebar"].stTitle {
+/* PÁGINA INICIAL */
+.title-cardinal {
     font-family: 'Playfair Display', serif!important;
-    color: #00ff88!important;
-    font-size: 26px!important;
-    letter-spacing: 2px!important;
+    font-size: 72px!important;
+    font-weight: 800!important;
+    text-align: center!important;
+    background: linear-gradient(135deg, #00ff88 0%, #00cc6a 50%, #00ff88 100%)!important;
+    -webkit-background-clip: text!important;
+    -webkit-text-fill-color: transparent!important;
+    background-clip: text!important;
+    letter-spacing: 4px!important;
     text-transform: uppercase!important;
-    margin-bottom: 30px!important;
+    margin: 100px 0 20px 0!important;
+    text-shadow: 0 0 40px rgba(0, 255, 136, 0.3)!important;
 }
 
+.subtitle-cardinal {
+    font-family: 'Inter', sans-serif!important;
+    font-size: 16px!important;
+    color: rgba(255, 255, 255, 0.7)!important;
+    text-align: center!important;
+    letter-spacing: 3px!important;
+    text-transform: uppercase!important;
+    margin: 0 0 60px 0!important;
+}
+
+.horario-titulo {
+    font-family: 'Playfair Display', serif!important;
+    font-size: 36px!important;
+    color: #00ff88!important;
+    text-align: center!important;
+    letter-spacing: 2px!important;
+    text-transform: uppercase!important;
+    margin: 80px 0 30px 0!important;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.4)!important;
+}
+
+.horario-item {
+    font-family: 'Inter', sans-serif!important;
+    font-size: 18px!important;
+    color: #00ff88!important;
+    text-align: center!important;
+    letter-spacing: 1.5px!important;
+    margin: 15px 0!important;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.3)!important;
+}
+
+/* CARDS */
 .admin-card {
     background: rgba(0, 255, 136, 0.03)!important;
     border: 1px solid rgba(0, 255, 136, 0.2)!important;
@@ -222,6 +280,7 @@ header, #MainMenu, footer {visibility: hidden!important;}
     margin: 0 0 25px 0!important;
 }
 
+/* BOTÕES */
 [data-testid="stButton"] > button {
     background: #000!important;
     border: 2px solid #00ff88!important;
@@ -243,6 +302,7 @@ header, #MainMenu, footer {visibility: hidden!important;}
     box-shadow: 0 8px 20px rgba(0, 255, 136, 0.3)!important;
 }
 
+/* INPUTS */
 .stTextInput > div > div > input,
 .stNumberInput > div > div > input,
 .stSelectbox > div > div > select,
@@ -260,6 +320,7 @@ header, #MainMenu, footer {visibility: hidden!important;}
     box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2)!important;
 }
 
+/* MÉTRICAS */
 [data-testid="stMetricValue"] {
     font-family: 'Playfair Display', serif!important;
     font-size: 48px!important;
@@ -274,6 +335,7 @@ header, #MainMenu, footer {visibility: hidden!important;}
     text-transform: uppercase!important;
 }
 
+/* ITEM LIST */
 .item-list {
     background: #1a1a1a!important;
     border: 1px solid rgba(0, 255, 136, 0.15)!important;
@@ -281,27 +343,46 @@ header, #MainMenu, footer {visibility: hidden!important;}
     margin: 12px 0!important;
     border-radius: 4px!important;
 }
+
+/* RESPONSIVO MOBILE */
+@media (max-width: 768px) {
+  .title-cardinal {font-size: 48px!important; margin: 60px 0 15px 0!important;}
+  .horario-titulo {font-size: 28px!important; margin: 50px 0 20px 0!important;}
+  .horario-item {font-size: 16px!important;}
+}
 </style>
-""", unsafe_allow_html=True)# TELA INICIAL PÚBLICA
+""", unsafe_allow_html=True)# BOTÃO TOGGLE SIDEBAR - VISÍVEL SEMPRE NO ADMIN
+if st.session_state.logged_in and st.session_state.user_data.get('role') == 'admin':
+    if st.button("☰ MENU", key="sidebar_toggle", help="Abrir/Fechar menu"):
+        st.session_state.sidebar_visible = not st.session_state.sidebar_visible
+
+# TELA INICIAL PÚBLICA
 if not st.session_state.logged_in and not st.session_state.show_admin and not st.session_state.show_student_portal and not st.session_state.show_cadastro:
 
-    st.markdown('<h1 class="title-cardinal">JDA PIÇARRAS</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="subtitle-cardinal">Tradição, disciplina e cultura em cada movimento</p>', unsafe_allow_html=True)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("PORTAL DO ALUNO", key="btn_aluno", use_container_width=True):
-            st.session_state.show_student_portal = True
-            st.rerun()
+    # CONTAINER CENTRALIZADO
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("SE INSCREVER", key="btn_cadastro", use_container_width=True):
-            st.session_state.show_cadastro = True
-            st.rerun()
+        st.markdown('<h1 class="title-cardinal">JDA PIÇARRAS</h1>', unsafe_allow_html=True)
+        st.markdown('<p class="subtitle-cardinal">Tradição, disciplina e cultura em cada movimento</p>', unsafe_allow_html=True)
 
-    st.subheader("Horário de Treinos")
-    horarios = obter_horarios()
-    for h in horarios:
-        st.write(f"**{h['dia']}** - {h['horario']}")
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("PORTAL DO ALUNO", key="btn_aluno", use_container_width=True):
+                st.session_state.show_student_portal = True
+                st.rerun()
+        with col_btn2:
+            if st.button("SE INSCREVER", key="btn_cadastro", use_container_width=True):
+                st.session_state.show_cadastro = True
+                st.rerun()
+
+        # HORÁRIO DE TREINOS CENTRALIZADO E VERDE NEON
+        st.markdown('<h2 class="horario-titulo">Horário de Treinos</h2>', unsafe_allow_html=True)
+        horarios = obter_horarios()
+        if horarios:
+            for h in horarios:
+                st.markdown(f'<p class="horario-item"><strong>{h["dia"]}</strong> — {h["horario"]}</p>', unsafe_allow_html=True)
+        else:
+            st.markdown('<p class="horario-item">Nenhum horário cadastrado</p>', unsafe_allow_html=True)
 
 # LOGIN ADMIN
 elif st.session_state.show_admin and not st.session_state.logged_in:
@@ -324,26 +405,27 @@ elif st.session_state.show_admin and not st.session_state.logged_in:
 # PAINEL ADMIN LOGADO
 elif st.session_state.logged_in and not st.session_state.must_change_password and st.session_state.user_data.get('role') == 'admin':
 
-    # SIDEBAR COM ÍCONES
+    # SIDEBAR CONTROLÁVEL
     with st.sidebar:
-        st.title("PAINEL MESTRE")
-        menu_opcoes = [
-            "📊 Dashboard",
-            "⏰ Horários",
-            "🛍️ Loja",
-            "🥋 Golpes",
-            "👥 Alunos",
-            "⚙️ Configurações"
-        ]
-        st.session_state.admin_page = st.radio("Navegação", menu_opcoes, index=0)
-        st.divider()
-        if st.button("🚪 SAIR", use_container_width=True):
-            logout()
+        if st.session_state.sidebar_visible:
+            st.title("PAINEL MESTRE")
+            menu_opcoes = [
+                "📊 Dashboard",
+                "⏰ Horários",
+                "🛍️ Loja",
+                "🥋 Golpes",
+                "👥 Alunos",
+                "⚙️ Configurações"
+            ]
+            st.session_state.admin_page = st.radio("Navegação", menu_opcoes, index=0)
+            st.divider()
+            if st.button("🚪 SAIR", use_container_width=True):
+                logout()
 
     # HEADER DO PAINEL - LINHA CORRIGIDA
-        pagina_atual = st.session_state.admin_page.split(' ', 1)[1]if '' in st.session_state.admin_page else st.session_state.admin_page
-        st.markdown(f'<h1 class="admin-title">{pagina_atual}</h1>', unsafe_allow_html=True)
-        st.markdown(f'<p class="admin-subtitle">Bem-vindo, {st.session_state.user_data["nome"]}</p>', unsafe_allow_html=True)
+    pagina_atual = st.session_state.admin_page.split(' ', 1)[1] if '' in st.session_state.admin_page else st.session_state.admin_page
+    st.markdown(f'<h1 class="admin-title">{pagina_atual}</h1>', unsafe_allow_html=True)
+    st.markdown(f'<p class="admin-subtitle">Bem-vindo, {st.session_state.user_data["nome"]}</p>', unsafe_allow_html=True)
 
     # DASHBOARD
     if st.session_state.admin_page == "📊 Dashboard":
