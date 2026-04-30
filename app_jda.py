@@ -23,6 +23,53 @@ db = firestore.client()
 def hash_senha(senha):
     return hashlib.sha256(senha.encode()).hexdigest()
 
+def obter_horarios():
+    doc = db.collection('config').document('horarios').get()
+    return doc.to_dict().get('lista', []) if doc.exists else []
+
+def salvar_horarios(lista_horarios):
+    db.collection('config').document('horarios').set({'lista': lista_horarios})
+    return True
+
+def deletar_horario(index):
+    horarios = obter_horarios()
+    if 0 <= index < len(horarios):
+        horarios.pop(index)
+        salvar_horarios(horarios)
+    return True
+
+def obter_produtos_loja():
+    doc = db.collection('config').document('loja').get()
+    return doc.to_dict().get('produtos', []) if doc.exists else []
+
+def salvar_produtos_loja(lista_produtos):
+    db.collection('config').document('loja').set({'produtos': lista_produtos})
+    return True
+
+def deletar_produto(index):
+    produtos = obter_produtos_loja()
+    if 0 <= index < len(produtos):
+        produtos.pop(index)
+        salvar_produtos_loja(produtos)
+    return True
+
+def obter_golpes_por_graduacao(graduacao):
+    doc = db.collection('golpes').document(graduacao).get()
+    if doc.exists:
+        return doc.to_dict().get('golpes', [])
+    return []
+
+def salvar_golpes_por_graduacao(graduacao, lista_golpes):
+    db.collection('golpes').document(graduacao).set({'golpes': lista_golpes})
+    return True
+
+def deletar_golpe(graduacao, index):
+    golpes = obter_golpes_por_graduacao(graduacao)
+    if 0 <= index < len(golpes):
+        golpes.pop(index)
+        salvar_golpes_por_graduacao(graduacao, golpes)
+    return True
+
 def obter_taxa_cadastro():
     doc = db.collection('config').document('taxa_cadastro').get()
     return doc.to_dict().get('valor', 50) if doc.exists else 50
@@ -30,38 +77,6 @@ def obter_taxa_cadastro():
 def obter_chave_pix():
     doc = db.collection('config').document('chave_pix').get()
     return doc.to_dict().get('valor', 'jda@pix.com.br') if doc.exists else 'jda@pix.com.br'
-
-def obter_horarios():
-    doc = db.collection('config').document('horarios').get()
-    return doc.to_dict().get('lista', [
-        {"dia": "Segunda / Quarta / Sexta", "horario": "19:00 - 21:00"},
-        {"dia": "Sábado", "horario": "14:00 - 17:00"},
-        {"dia": "Roda Mensal", "horario": "Último Sábado - 16:00"}
-    ]) if doc.exists else []
-
-def salvar_horarios(lista_horarios):
-    db.collection('config').document('horarios').set({'lista': lista_horarios})
-    return True
-
-def obter_produtos_loja():
-    doc = db.collection('config').document('loja').get()
-    return doc.to_dict().get('produtos', [
-        {"nome": "Camiseta JDA", "preco": 45.00, "descricao": "Camiseta oficial JDA Piçarras"}
-    ]) if doc.exists else []
-
-def salvar_produtos_loja(lista_produtos):
-    db.collection('config').document('loja').set({'produtos': lista_produtos})
-    return True
-
-def obter_golpes_por_graduacao(graduacao):
-    doc = db.collection('golpes').document(graduacao).get()
-    if doc.exists:
-        return doc.to_dict().get('golpes', [])
-    return [{"nome": f"Golpe {i+1}", "descricao": ""} for i in range(25)]
-
-def salvar_golpes_por_graduacao(graduacao, lista_golpes):
-    db.collection('golpes').document(graduacao).set({'golpes': lista_golpes})
-    return True
 
 def cadastrar_aluno(nome, email, graduacao, telefone, paga_mensalidade, taxa_cadastro_paga):
     senha_temp = hash_senha("123456")
@@ -84,6 +99,10 @@ def cadastrar_aluno(nome, email, graduacao, telefone, paga_mensalidade, taxa_cad
 
 def aprovar_aluno(email):
     db.collection('alunos').document(email).update({'status': 'ativo'})
+    return True
+
+def deletar_aluno(email):
+    db.collection('alunos').document(email).delete()
     return True
 
 def login_aluno(email, senha):
@@ -140,20 +159,19 @@ if 'show_cadastro' not in st.session_state:
     st.session_state.show_cadastro = False
 if 'admin_page' not in st.session_state:
     st.session_state.admin_page = "Dashboard"
+if 'edit_index' not in st.session_state:
+    st.session_state.edit_index = None
+if 'edit_type' not in st.session_state:
+    st.session_state.edit_type = None
 
-# CSS ESTILIZADO PARA TODO O APP
+# CSS ESTILIZADO
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 header, #MainMenu, footer {visibility: hidden!important;}
+.stApp {background: #0a0a0a!important; font-family: 'Inter', sans-serif!important;}
 
-.stApp {
-    background: #0a0a0a!important;
-    font-family: 'Inter', sans-serif!important;
-}
-
-/* SIDEBAR ESTILIZADA */
 [data-testid="stSidebar"] {
     background: #0f0f0f!important;
     border-right: 1px solid rgba(0, 255, 136, 0.3)!important;
@@ -163,26 +181,12 @@ header, #MainMenu, footer {visibility: hidden!important;}
 [data-testid="stSidebar"].stTitle {
     font-family: 'Playfair Display', serif!important;
     color: #00ff88!important;
-    font-size: 28px!important;
+    font-size: 26px!important;
     letter-spacing: 2px!important;
     text-transform: uppercase!important;
     margin-bottom: 30px!important;
 }
 
-[data-testid="stSidebar"] [data-testid="stRadio"] label {
-    font-family: 'Inter', sans-serif!important;
-    color: rgba(255, 255, 255, 0.8)!important;
-    font-size: 14px!important;
-    letter-spacing: 1.5px!important;
-    text-transform: uppercase!important;
-    padding: 12px 0!important;
-}
-
-[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
-    color: #00ff88!important;
-}
-
-/* CARDS E TÍTULOS */
 .admin-card {
     background: rgba(0, 255, 136, 0.03)!important;
     border: 1px solid rgba(0, 255, 136, 0.2)!important;
@@ -218,7 +222,6 @@ header, #MainMenu, footer {visibility: hidden!important;}
     margin: 0 0 25px 0!important;
 }
 
-/* BOTÕES */
 [data-testid="stButton"] > button {
     background: #000!important;
     border: 2px solid #00ff88!important;
@@ -228,7 +231,7 @@ header, #MainMenu, footer {visibility: hidden!important;}
     font-weight: 600!important;
     letter-spacing: 2px!important;
     text-transform: uppercase!important;
-    padding: 15px 30px!important;
+    padding: 12px 25px!important;
     border-radius: 4px!important;
     transition: all 0.3s ease!important;
 }
@@ -240,7 +243,6 @@ header, #MainMenu, footer {visibility: hidden!important;}
     box-shadow: 0 8px 20px rgba(0, 255, 136, 0.3)!important;
 }
 
-/* INPUTS E FORMS */
 .stTextInput > div > div > input,
 .stNumberInput > div > div > input,
 .stSelectbox > div > div > select,
@@ -253,13 +255,11 @@ header, #MainMenu, footer {visibility: hidden!important;}
 }
 
 .stTextInput > div > div > input:focus,
-.stNumberInput > div > div > input:focus,
-.stSelectbox > div > div > select:focus {
+.stNumberInput > div > div > input:focus {
     border: 1px solid #00ff88!important;
     box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2)!important;
 }
 
-/* MÉTRICAS */
 [data-testid="stMetricValue"] {
     font-family: 'Playfair Display', serif!important;
     font-size: 48px!important;
@@ -274,10 +274,11 @@ header, #MainMenu, footer {visibility: hidden!important;}
     text-transform: uppercase!important;
 }
 
-/* DATAFRAME */
-.stDataFrame {
+.item-list {
     background: #1a1a1a!important;
-    border: 1px solid rgba(0, 255, 136, 0.2)!important;
+    border: 1px solid rgba(0, 255, 136, 0.15)!important;
+    padding: 20px 25px!important;
+    margin: 12px 0!important;
     border-radius: 4px!important;
 }
 </style>
@@ -320,26 +321,32 @@ elif st.session_state.show_admin and not st.session_state.logged_in:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# PAINEL ADMIN LOGADO - ESTILIZADO
+# PAINEL ADMIN LOGADO
 elif st.session_state.logged_in and not st.session_state.must_change_password and st.session_state.user_data.get('role') == 'admin':
 
-    # SIDEBAR ESTILIZADA
+    # SIDEBAR COM ÍCONES
     with st.sidebar:
         st.title("PAINEL MESTRE")
-        st.session_state.admin_page = st.radio(
-            "Navegação",
-            ["Dashboard", "Horários", "Loja", "Golpes", "Alunos", "Configurações"]
-        )
+        menu_opcoes = [
+            "📊 Dashboard",
+            "⏰ Horários",
+            "🛍️ Loja",
+            "🥋 Golpes",
+            "👥 Alunos",
+            "⚙️ Configurações"
+        ]
+        st.session_state.admin_page = st.radio("Navegação", menu_opcoes, index=0)
         st.divider()
-        if st.button("SAIR", use_container_width=True):
+        if st.button("🚪 SAIR", use_container_width=True):
             logout()
 
-    # HEADER DO PAINEL
-    st.markdown(f'<h1 class="admin-title">{st.session_state.admin_page}</h1>', unsafe_allow_html=True)
-    st.markdown(f'<p class="admin-subtitle">Bem-vindo, {st.session_state.user_data["nome"]}</p>', unsafe_allow_html=True)
+    # HEADER DO PAINEL - LINHA CORRIGIDA
+        pagina_atual = st.session_state.admin_page.split(' ', 1)[1]if '' in st.session_state.admin_page else st.session_state.admin_page
+        st.markdown(f'<h1 class="admin-title">{pagina_atual}</h1>', unsafe_allow_html=True)
+        st.markdown(f'<p class="admin-subtitle">Bem-vindo, {st.session_state.user_data["nome"]}</p>', unsafe_allow_html=True)
 
     # DASHBOARD
-    if st.session_state.admin_page == "Dashboard":
+    if st.session_state.admin_page == "📊 Dashboard":
         alunos = list(db.collection('alunos').stream())
         total_alunos = len([a for a in alunos if a.to_dict().get('role') == 'aluno'])
         alunos_ativos = len([a for a in alunos if a.to_dict().get('status') == 'ativo'])
@@ -359,77 +366,200 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
             st.metric("Pendentes", alunos_pendentes)
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # EDITAR HORÁRIOS
-    elif st.session_state.admin_page == "Horários":
+    # HORÁRIOS - ADICIONAR + LISTA + EDITAR + EXCLUIR
+    elif st.session_state.admin_page == "⏰ Horários":
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
-        st.markdown('<h3 class="section-title">Editar Horários de Treino</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 class="section-title">Gerenciar Horários</h3>', unsafe_allow_html=True)
 
-        horarios = obter_horarios()
-        with st.form("form_horarios"):
-            novos_horarios = []
-            for i in range(3):
-                dia_atual = horarios[i]["dia"] if i < len(horarios) else ""
-                horario_atual = horarios[i]["horario"] if i < len(horarios) else ""
+        # FORM ADICIONAR/EDITAR
+        if st.session_state.edit_type == "horario" and st.session_state.edit_index is not None:
+            horarios = obter_horarios()
+            horario_edit = horarios[st.session_state.edit_index]
+            with st.form("form_edit_horario"):
+                st.write("**Editando Horário**")
+                dia = st.text_input("Dia", value=horario_edit["dia"])
+                horario = st.text_input("Horário", value=horario_edit["horario"])
                 col1, col2 = st.columns(2)
-                dia = col1.text_input(f"Dia {i+1}", value=dia_atual)
-                horario = col2.text_input(f"Horário {i+1}", value=horario_atual)
-                novos_horarios.append({"dia": dia, "horario": horario})
+                if col1.form_submit_button("ATUALIZAR", use_container_width=True):
+                    horarios[st.session_state.edit_index] = {"dia": dia, "horario": horario}
+                    salvar_horarios(horarios)
+                    st.session_state.edit_index = None
+                    st.session_state.edit_type = None
+                    st.success("Horário atualizado!")
+                    st.rerun()
+                if col2.form_submit_button("CANCELAR", use_container_width=True):
+                    st.session_state.edit_index = None
+                    st.session_state.edit_type = None
+                    st.rerun()
+        else:
+            with st.form("form_add_horario"):
+                st.write("**Adicionar Novo Horário**")
+                col1, col2 = st.columns(2)
+                dia = col1.text_input("Dia da Semana", placeholder="Ex: Segunda / Quarta / Sexta")
+                horario = col2.text_input("Horário", placeholder="Ex: 19:00 - 21:00")
+                if st.form_submit_button("ADICIONAR HORÁRIO", use_container_width=True):
+                    if dia and horario:
+                        horarios = obter_horarios()
+                        horarios.append({"dia": dia, "horario": horario})
+                        salvar_horarios(horarios)
+                        st.success("Horário adicionado!")
+                        st.rerun()
+                    else:
+                        st.error("Preencha todos os campos")
 
-            if st.form_submit_button("SALVAR HORÁRIOS", use_container_width=True):
-                salvar_horarios(novos_horarios)
-                st.success("Horários salvos com sucesso!")
+        # LISTA DE HORÁRIOS
+        st.markdown('<h3 class="section-title" style="font-size:24px;margin:50px 0 20px 0;">Horários Cadastrados</h3>', unsafe_allow_html=True)
+        horarios = obter_horarios()
+        if horarios:
+            for i, h in enumerate(horarios):
+                st.markdown(f'<div class="item-list">', unsafe_allow_html=True)
+                col1, col2, col3 = st.columns([4,1,1])
+                col1.markdown(f"**{h['dia']}** — {h['horario']}")
+                if col2.button("EDITAR", key=f"edit_hor_{i}"):
+                    st.session_state.edit_index = i
+                    st.session_state.edit_type = "horario"
+                    st.rerun()
+                if col3.button("EXCLUIR", key=f"del_hor_{i}"):
+                    deletar_horario(i)
+                    st.success("Horário excluído!")
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Nenhum horário cadastrado")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # EDITAR LOJA
-    elif st.session_state.admin_page == "Loja":
+    # LOJA - ADICIONAR + LISTA + EDITAR + EXCLUIR
+    elif st.session_state.admin_page == "🛍️ Loja":
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
-        st.markdown('<h3 class="section-title">Editar Produtos da Loja</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 class="section-title">Gerenciar Produtos</h3>', unsafe_allow_html=True)
 
-        produtos = obter_produtos_loja()
-        with st.form("form_loja"):
-            novos_produtos = []
-            for i in range(4):
-                nome_atual = produtos[i]["nome"] if i < len(produtos) else ""
-                preco_atual = float(produtos[i]["preco"]) if i < len(produtos) else 0.0
-                desc_atual = produtos[i]["descricao"] if i < len(produtos) else ""
-
-                st.markdown(f"<h4 style='color:#ffffff;font-size:16px;margin:25px 0 15px 0;'>Produto {i+1}</h4>", unsafe_allow_html=True)
+        # FORM ADICIONAR/EDITAR
+        if st.session_state.edit_type == "produto" and st.session_state.edit_index is not None:
+            produtos = obter_produtos_loja()
+            produto_edit = produtos[st.session_state.edit_index]
+            with st.form("form_edit_produto"):
+                st.write("**Editando Produto**")
+                nome = st.text_input("Nome do Produto", value=produto_edit["nome"])
+                preco = st.number_input("Preço R$", value=float(produto_edit["preco"]))
+                desc = st.text_input("Descrição", value=produto_edit["descricao"])
+                col1, col2 = st.columns(2)
+                if col1.form_submit_button("ATUALIZAR", use_container_width=True):
+                    produtos[st.session_state.edit_index] = {"nome": nome, "preco": preco, "descricao": desc}
+                    salvar_produtos_loja(produtos)
+                    st.session_state.edit_index = None
+                    st.session_state.edit_type = None
+                    st.success("Produto atualizado!")
+                    st.rerun()
+                if col2.form_submit_button("CANCELAR", use_container_width=True):
+                    st.session_state.edit_index = None
+                    st.session_state.edit_type = None
+                    st.rerun()
+        else:
+            with st.form("form_add_produto"):
+                st.write("**Adicionar Novo Produto**")
                 col1, col2, col3 = st.columns(3)
-                nome = col1.text_input(f"Nome", value=nome_atual, key=f"prod_nome_{i}")
-                preco = col2.number_input(f"Preço R$", value=preco_atual, key=f"prod_preco_{i}")
-                desc = col3.text_input(f"Descrição", value=desc_atual, key=f"prod_desc_{i}")
-                novos_produtos.append({"nome": nome, "preco": preco, "descricao": desc})
+                nome = col1.text_input("Nome do Produto", placeholder="Ex: Camiseta JDA")
+                preco = col2.number_input("Preço R$", min_value=0.0, step=5.0)
+                desc = col3.text_input("Descrição", placeholder="Ex: Camiseta oficial")
+                if st.form_submit_button("ADICIONAR PRODUTO", use_container_width=True):
+                    if nome and preco > 0:
+                        produtos = obter_produtos_loja()
+                        produtos.append({"nome": nome, "preco": preco, "descricao": desc})
+                        salvar_produtos_loja(produtos)
+                        st.success("Produto adicionado!")
+                        st.rerun()
+                    else:
+                        st.error("Preencha nome e preço")
 
-            if st.form_submit_button("SALVAR PRODUTOS", use_container_width=True):
-                salvar_produtos_loja(novos_produtos)
-                st.success("Produtos salvos com sucesso!")
+        # LISTA DE PRODUTOS
+        st.markdown('<h3 class="section-title" style="font-size:24px;margin:50px 0 20px 0;">Produtos Cadastrados</h3>', unsafe_allow_html=True)
+        produtos = obter_produtos_loja()
+        if produtos:
+            for i, p in enumerate(produtos):
+                st.markdown(f'<div class="item-list">', unsafe_allow_html=True)
+                col1, col2, col3, col4 = st.columns([3,2,3,2])
+                col1.markdown(f"**{p['nome']}**")
+                col2.markdown(f"R$ {p['preco']:.2f}")
+                col3.markdown(f"{p['descricao']}")
+                if col4.button("EDITAR", key=f"edit_prod_{i}"):
+                    st.session_state.edit_index = i
+                    st.session_state.edit_type = "produto"
+                    st.rerun()
+                if col4.button("EXCLUIR", key=f"del_prod_{i}"):
+                    deletar_produto(i)
+                    st.success("Produto excluído!")
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Nenhum produto cadastrado")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # EDITAR GOLPES
-    elif st.session_state.admin_page == "Golpes":
+    # GOLPES - ADICIONAR + LISTA + EDITAR + EXCLUIR
+    elif st.session_state.admin_page == "🥋 Golpes":
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
-        st.markdown('<h3 class="section-title">25 Golpes por Graduação</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 class="section-title">Gerenciar Golpes por Graduação</h3>', unsafe_allow_html=True)
 
-        graduacao_selecionada = st.selectbox("Selecione a Graduação para Editar", GRADUACOES_CAPOEIRA)
+        graduacao_selecionada = st.selectbox("Selecione a Graduação", GRADUACOES_CAPOEIRA, key="select_grad_golpes")
+
+        # FORM ADICIONAR/EDITAR GOLPE
+        if st.session_state.edit_type == "golpe" and st.session_state.edit_index is not None:
+            golpes = obter_golpes_por_graduacao(graduacao_selecionada)
+            golpe_edit = golpes[st.session_state.edit_index]
+            with st.form("form_edit_golpe"):
+                st.write(f"**Editando Golpe {st.session_state.edit_index + 1} - {graduacao_selecionada}**")
+                nome = st.text_input("Nome do Golpe", value=golpe_edit["nome"])
+                desc = st.text_input("Descrição", value=golpe_edit["descricao"])
+                col1, col2 = st.columns(2)
+                if col1.form_submit_button("ATUALIZAR", use_container_width=True):
+                    golpes[st.session_state.edit_index] = {"nome": nome, "descricao": desc}
+                    salvar_golpes_por_graduacao(graduacao_selecionada, golpes)
+                    st.session_state.edit_index = None
+                    st.session_state.edit_type = None
+                    st.success("Golpe atualizado!")
+                    st.rerun()
+                if col2.form_submit_button("CANCELAR", use_container_width=True):
+                    st.session_state.edit_index = None
+                    st.session_state.edit_type = None
+                    st.rerun()
+        else:
+            with st.form("form_add_golpe"):
+                st.write(f"**Adicionar Novo Golpe - {graduacao_selecionada}**")
+                col1, col2 = st.columns(2)
+                nome = col1.text_input("Nome do Golpe", placeholder="Ex: Meia Lua de Compasso")
+                desc = col2.text_input("Descrição", placeholder="Ex: Golpe circular de perna")
+                if st.form_submit_button("ADICIONAR GOLPE", use_container_width=True):
+                    if nome:
+                        golpes = obter_golpes_por_graduacao(graduacao_selecionada)
+                        golpes.append({"nome": nome, "descricao": desc})
+                        salvar_golpes_por_graduacao(graduacao_selecionada, golpes)
+                        st.success("Golpe adicionado!")
+                        st.rerun()
+                    else:
+                        st.error("Preencha o nome do golpe")
+
+        # LISTA DE GOLPES
+        st.markdown(f'<h3 class="section-title" style="font-size:24px;margin:50px 0 20px 0;">Golpes - {graduacao_selecionada}</h3>', unsafe_allow_html=True)
         golpes = obter_golpes_por_graduacao(graduacao_selecionada)
-
-        with st.form(f"form_golpes_{graduacao_selecionada}"):
-            novos_golpes = []
-            for i in range(25):
-                nome_atual = golpes[i]["nome"] if i < len(golpes) else f"Golpe {i+1}"
-                desc_atual = golpes[i]["descricao"] if i < len(golpes) else ""
-                col1, col2 = st.columns([3,5])
-                nome = col1.text_input(f"Golpe {i+1}", value=nome_atual, key=f"golpe_nome_{i}")
-                desc = col2.text_input(f"Descrição", value=desc_atual, key=f"golpe_desc_{i}")
-                novos_golpes.append({"nome": nome, "descricao": desc})
-
-            if st.form_submit_button(f"SALVAR 25 GOLPES - {graduacao_selecionada}", use_container_width=True):
-                salvar_golpes_por_graduacao(graduacao_selecionada, novos_golpes)
-                st.success(f"Golpes salvos para {graduacao_selecionada}")
+        if golpes:
+            for i, g in enumerate(golpes):
+                st.markdown(f'<div class="item-list">', unsafe_allow_html=True)
+                col1, col2, col3 = st.columns([5,1,1])
+                col1.markdown(f"**{i+1}. {g['nome']}** — {g['descricao']}")
+                if col2.button("EDITAR", key=f"edit_golpe_{i}"):
+                    st.session_state.edit_index = i
+                    st.session_state.edit_type = "golpe"
+                    st.rerun()
+                if col3.button("EXCLUIR", key=f"del_golpe_{i}"):
+                    deletar_golpe(graduacao_selecionada, i)
+                    st.success("Golpe excluído!")
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Nenhum golpe cadastrado para esta graduação")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # GERENCIAR ALUNOS
-    elif st.session_state.admin_page == "Alunos":
+    # ALUNOS - LISTA + APROVAR + EXCLUIR
+    elif st.session_state.admin_page == "👥 Alunos":
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
         st.markdown('<h3 class="section-title">Gerenciar Alunos</h3>', unsafe_allow_html=True)
 
@@ -445,24 +575,30 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
             df = pd.DataFrame(alunos_lista)
             st.dataframe(df[['nome', 'email', 'graduacao', 'status', 'telefone']], use_container_width=True)
 
-            st.markdown('<h4 class="section-title" style="font-size:24px;margin:50px 0 20px 0;">Alunos Pendentes de Aprovação</h4>', unsafe_allow_html=True)
+            st.markdown('<h3 class="section-title" style="font-size:24px;margin:50px 0 20px 0;">Alunos Pendentes</h3>', unsafe_allow_html=True)
             pendentes = [a for a in alunos_lista if a['status'] == 'pendente']
             if pendentes:
                 for aluno in pendentes:
-                    col1, col2 = st.columns([5,1])
-                    col1.markdown(f'<div class="admin-card" style="margin:15px 0;padding:25px;"><strong>{aluno["nome"]}</strong> — {aluno["graduacao"]}<br>{aluno["email"]}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="item-list">', unsafe_allow_html=True)
+                    col1, col2, col3 = st.columns([4,1,1])
+                    col1.markdown(f"**{aluno['nome']}** — {aluno['graduacao']}<br>{aluno['email']}")
                     if col2.button("APROVAR", key=f"aprov_{aluno['email']}"):
                         aprovar_aluno(aluno['email'])
                         st.success(f"{aluno['nome']} aprovado!")
                         st.rerun()
+                    if col3.button("EXCLUIR", key=f"del_aluno_{aluno['email']}"):
+                        deletar_aluno(aluno['email'])
+                        st.success(f"{aluno['nome']} excluído!")
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
             else:
-                st.info("Nenhum aluno pendente no momento")
+                st.info("Nenhum aluno pendente")
         else:
             st.info("Nenhum capoeirista cadastrado")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # CONFIGURAÇÕES
-    elif st.session_state.admin_page == "Configurações":
+    elif st.session_state.admin_page == "⚙️ Configurações":
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
         st.markdown('<h3 class="section-title">Configurações Gerais</h3>', unsafe_allow_html=True)
 
@@ -475,7 +611,7 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
                 st.success("Configurações salvas com sucesso!")
         st.markdown("</div>", unsafe_allow_html=True)
 
-# PORTAL DO ALUNO ESTILIZADO
+# PORTAL DO ALUNO
 elif st.session_state.logged_in and not st.session_state.must_change_password and st.session_state.user_data.get('role') == 'aluno':
     st.markdown(f'<h1 class="admin-title">{st.session_state.user_data["nome"]}</h1>', unsafe_allow_html=True)
     st.markdown(f'<p class="admin-subtitle">Graduação: {st.session_state.user_data["graduacao"]}</p>', unsafe_allow_html=True)
@@ -503,7 +639,7 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
     if st.button("SAIR", use_container_width=True):
         logout()
 
-# TROCA DE SENHA OBRIGATÓRIA ESTILIZADA
+# TROCA DE SENHA OBRIGATÓRIA
 elif st.session_state.must_change_password:
     st.markdown('<div style="max-width:600px;margin:100px auto;padding:60px 50px;">', unsafe_allow_html=True)
     st.markdown('<h1 class="admin-title">Primeiro Acesso</h1>', unsafe_allow_html=True)
@@ -536,7 +672,7 @@ elif st.session_state.must_change_password:
                     st.error("Senha atual incorreta")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# CADASTRO ESTILIZADO
+# CADASTRO
 elif st.session_state.show_cadastro:
     st.markdown('<div style="max-width:700px;margin:80px auto;padding:60px 50px;">', unsafe_allow_html=True)
     st.markdown('<h1 class="admin-title">Inscrição JDA Piçarras</h1>', unsafe_allow_html=True)
@@ -565,9 +701,13 @@ elif st.session_state.show_cadastro:
                 st.rerun()
             else:
                 st.error("Preencha todos os campos")
+
+    if st.button("VOLTAR", use_container_width=True):
+        st.session_state.show_cadastro = False
+        st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# LOGIN ALUNO ESTILIZADO
+# LOGIN ALUNO
 elif st.session_state.show_student_portal and not st.session_state.logged_in:
     st.markdown('<div style="max-width:500px;margin:100px auto;padding:60px 50px;">', unsafe_allow_html=True)
     st.markdown('<h1 class="admin-title">Portal do Capoeirista</h1>', unsafe_allow_html=True)
