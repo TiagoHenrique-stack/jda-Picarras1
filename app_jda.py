@@ -4,18 +4,13 @@ from firebase_admin import credentials, firestore, get_app, _apps, storage
 from datetime import datetime
 import hashlib
 import pandas as pd
-import base64
-import os
 
-st.set_page_config(layout="wide", page_title="JDA PIÇARRAS - Capoeira", initial_sidebar_state="expanded")
+st.set_page_config(layout="wide", page_title="JDA PIÇARRAS - Painel Mestre", initial_sidebar_state="expanded")
 
 # Inicialização do Firebase
 if not _apps:
     try:
-        if 'firebase_credentials' in st.secrets:
-            cred = credentials.Certificate(dict(st.secrets['firebase_credentials']))
-        else:
-            cred = credentials.Certificate("firebase_key.json")
+        cred = credentials.Certificate(dict(st.secrets['firebase_credentials']))
         firebase_admin.initialize_app(cred, {'storageBucket': 'jda-picarras1.appspot.com'})
     except Exception as e:
         st.error(f"ERRO FIREBASE: {e}")
@@ -146,7 +141,7 @@ if 'show_cadastro' not in st.session_state:
 if 'admin_page' not in st.session_state:
     st.session_state.admin_page = "Dashboard"
 
-# CSS APENAS PARA PÁGINA PÚBLICA
+# CSS ESTILIZADO PARA TODO O APP
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
@@ -155,48 +150,135 @@ header, #MainMenu, footer {visibility: hidden!important;}
 
 .stApp {
     background: #0a0a0a!important;
-    padding: 60px 20px 40px 20px!important;
-}
-
-.title-cardinal {
-    font-family: 'Playfair Display', serif!important;
-    font-size: 72px!important;
-    font-weight: 800!important;
-    background: linear-gradient(135deg, #00ff88 0%, #ffff00 100%)!important;
-    -webkit-background-clip: text!important;
-    -webkit-text-fill-color: transparent!important;
-    background-clip: text!important;
-    text-align: center!important;
-    letter-spacing: -2px!important;
-    margin: 0 0 24px 0!important;
-}
-
-.subtitle-cardinal {
     font-family: 'Inter', sans-serif!important;
-    font-size: 16px!important;
-    color: rgba(255, 255, 255, 0.8)!important;
-    text-align: center!important;
-    letter-spacing: 1.5px!important;
-    margin: 0 auto 80px auto!important;
 }
 
+/* SIDEBAR ESTILIZADA */
+[data-testid="stSidebar"] {
+    background: #0f0f0f!important;
+    border-right: 1px solid rgba(0, 255, 136, 0.3)!important;
+    padding: 30px 20px!important;
+}
+
+[data-testid="stSidebar"].stTitle {
+    font-family: 'Playfair Display', serif!important;
+    color: #00ff88!important;
+    font-size: 28px!important;
+    letter-spacing: 2px!important;
+    text-transform: uppercase!important;
+    margin-bottom: 30px!important;
+}
+
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+    font-family: 'Inter', sans-serif!important;
+    color: rgba(255, 255, 255, 0.8)!important;
+    font-size: 14px!important;
+    letter-spacing: 1.5px!important;
+    text-transform: uppercase!important;
+    padding: 12px 0!important;
+}
+
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
+    color: #00ff88!important;
+}
+
+/* CARDS E TÍTULOS */
+.admin-card {
+    background: rgba(0, 255, 136, 0.03)!important;
+    border: 1px solid rgba(0, 255, 136, 0.2)!important;
+    padding: 40px 35px!important;
+    margin: 30px 0!important;
+    border-radius: 8px!important;
+}
+
+.admin-title {
+    font-family: 'Playfair Display', serif!important;
+    font-size: 42px!important;
+    font-weight: 700!important;
+    color: #00ff88!important;
+    letter-spacing: 2px!important;
+    text-transform: uppercase!important;
+    margin: 0 0 15px 0!important;
+}
+
+.admin-subtitle {
+    font-family: 'Inter', sans-serif!important;
+    font-size: 14px!important;
+    color: rgba(255, 255, 255, 0.6)!important;
+    letter-spacing: 1.5px!important;
+    margin: 0 0 40px 0!important;
+}
+
+.section-title {
+    font-family: 'Playfair Display', serif!important;
+    font-size: 28px!important;
+    color: #00ff88!important;
+    letter-spacing: 2px!important;
+    text-transform: uppercase!important;
+    margin: 0 0 25px 0!important;
+}
+
+/* BOTÕES */
 [data-testid="stButton"] > button {
     background: #000!important;
     border: 2px solid #00ff88!important;
     color: #00ff88!important;
     font-family: 'Inter', sans-serif!important;
-    font-size: 14px!important;
+    font-size: 13px!important;
     font-weight: 600!important;
-    letter-spacing: 3px!important;
+    letter-spacing: 2px!important;
     text-transform: uppercase!important;
-    padding: 35px 50px!important;
-    width: 100%!important;
-    border-radius: 0px!important;
+    padding: 15px 30px!important;
+    border-radius: 4px!important;
+    transition: all 0.3s ease!important;
 }
 
 [data-testid="stButton"] > button:hover {
     background: #00ff88!important;
     color: #000!important;
+    transform: translateY(-2px)!important;
+    box-shadow: 0 8px 20px rgba(0, 255, 136, 0.3)!important;
+}
+
+/* INPUTS E FORMS */
+.stTextInput > div > div > input,
+.stNumberInput > div > div > input,
+.stSelectbox > div > div > select,
+.stTextArea > div > div > textarea {
+    background: #1a1a1a!important;
+    border: 1px solid rgba(0, 255, 136, 0.3)!important;
+    color: #ffffff!important;
+    border-radius: 4px!important;
+    font-family: 'Inter', sans-serif!important;
+}
+
+.stTextInput > div > div > input:focus,
+.stNumberInput > div > div > input:focus,
+.stSelectbox > div > div > select:focus {
+    border: 1px solid #00ff88!important;
+    box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2)!important;
+}
+
+/* MÉTRICAS */
+[data-testid="stMetricValue"] {
+    font-family: 'Playfair Display', serif!important;
+    font-size: 48px!important;
+    color: #00ff88!important;
+}
+
+[data-testid="stMetricLabel"] {
+    font-family: 'Inter', sans-serif!important;
+    font-size: 12px!important;
+    color: rgba(255, 255, 255, 0.5)!important;
+    letter-spacing: 2px!important;
+    text-transform: uppercase!important;
+}
+
+/* DATAFRAME */
+.stDataFrame {
+    background: #1a1a1a!important;
+    border: 1px solid rgba(0, 255, 136, 0.2)!important;
+    border-radius: 4px!important;
 }
 </style>
 """, unsafe_allow_html=True)# TELA INICIAL PÚBLICA
@@ -222,34 +304,39 @@ if not st.session_state.logged_in and not st.session_state.show_admin and not st
 
 # LOGIN ADMIN
 elif st.session_state.show_admin and not st.session_state.logged_in:
-    st.title("Painel do Mestre - Login")
+    st.markdown('<div style="max-width:500px;margin:100px auto;padding:60px 50px;">', unsafe_allow_html=True)
+    st.markdown('<h1 class="admin-title">Painel do Mestre</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="admin-subtitle">Acesso Restrito</p>', unsafe_allow_html=True)
+
     with st.form("admin_login_form"):
         email = st.text_input("Email Admin")
         senha = st.text_input("Senha Admin", type="password")
-        submitted = st.form_submit_button("ENTRAR")
+        submitted = st.form_submit_button("ENTRAR", use_container_width=True)
         if submitted:
             login_aluno(email, senha)
 
-    if st.button("VOLTAR"):
+    if st.button("VOLTAR", use_container_width=True):
         st.session_state.show_admin = False
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# PAINEL ADMIN LOGADO - SIDEBAR NATIVA
+# PAINEL ADMIN LOGADO - ESTILIZADO
 elif st.session_state.logged_in and not st.session_state.must_change_password and st.session_state.user_data.get('role') == 'admin':
 
-    # SIDEBAR NATIVA DO STREAMLIT
+    # SIDEBAR ESTILIZADA
     with st.sidebar:
-        st.title("Painel Mestre")
+        st.title("PAINEL MESTRE")
         st.session_state.admin_page = st.radio(
-            "Menu",
+            "Navegação",
             ["Dashboard", "Horários", "Loja", "Golpes", "Alunos", "Configurações"]
         )
         st.divider()
-        if st.button("Sair"):
+        if st.button("SAIR", use_container_width=True):
             logout()
 
-    # CONTEÚDO PRINCIPAL DO ADMIN
-    st.header(f"{st.session_state.admin_page}")
+    # HEADER DO PAINEL
+    st.markdown(f'<h1 class="admin-title">{st.session_state.admin_page}</h1>', unsafe_allow_html=True)
+    st.markdown(f'<p class="admin-subtitle">Bem-vindo, {st.session_state.user_data["nome"]}</p>', unsafe_allow_html=True)
 
     # DASHBOARD
     if st.session_state.admin_page == "Dashboard":
@@ -259,15 +346,25 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
         alunos_pendentes = len([a for a in alunos if a.to_dict().get('status') == 'pendente'])
 
         col1, col2, col3 = st.columns(3)
-        col1.metric("Total Capoeiristas", total_alunos)
-        col2.metric("Ativos", alunos_ativos)
-        col3.metric("Pendentes", alunos_pendentes)
+        with col1:
+            st.markdown('<div class="admin-card" style="text-align:center;">', unsafe_allow_html=True)
+            st.metric("Total Capoeiristas", total_alunos)
+            st.markdown('</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown('<div class="admin-card" style="text-align:center;">', unsafe_allow_html=True)
+            st.metric("Alunos Ativos", alunos_ativos)
+            st.markdown('</div>', unsafe_allow_html=True)
+        with col3:
+            st.markdown('<div class="admin-card" style="text-align:center;">', unsafe_allow_html=True)
+            st.metric("Pendentes", alunos_pendentes)
+            st.markdown('</div>', unsafe_allow_html=True)
 
     # EDITAR HORÁRIOS
     elif st.session_state.admin_page == "Horários":
-        st.subheader("Editar Horários de Treino")
-        horarios = obter_horarios()
+        st.markdown('<div class="admin-card">', unsafe_allow_html=True)
+        st.markdown('<h3 class="section-title">Editar Horários de Treino</h3>', unsafe_allow_html=True)
 
+        horarios = obter_horarios()
         with st.form("form_horarios"):
             novos_horarios = []
             for i in range(3):
@@ -278,37 +375,42 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
                 horario = col2.text_input(f"Horário {i+1}", value=horario_atual)
                 novos_horarios.append({"dia": dia, "horario": horario})
 
-            if st.form_submit_button("SALVAR HORÁRIOS"):
+            if st.form_submit_button("SALVAR HORÁRIOS", use_container_width=True):
                 salvar_horarios(novos_horarios)
-                st.success("Horários salvos!")
+                st.success("Horários salvos com sucesso!")
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # EDITAR LOJA
     elif st.session_state.admin_page == "Loja":
-        st.subheader("Editar Produtos da Loja")
-        produtos = obter_produtos_loja()
+        st.markdown('<div class="admin-card">', unsafe_allow_html=True)
+        st.markdown('<h3 class="section-title">Editar Produtos da Loja</h3>', unsafe_allow_html=True)
 
+        produtos = obter_produtos_loja()
         with st.form("form_loja"):
             novos_produtos = []
-            for i in range(3):
+            for i in range(4):
                 nome_atual = produtos[i]["nome"] if i < len(produtos) else ""
                 preco_atual = float(produtos[i]["preco"]) if i < len(produtos) else 0.0
                 desc_atual = produtos[i]["descricao"] if i < len(produtos) else ""
 
-                st.write(f"Produto {i+1}")
+                st.markdown(f"<h4 style='color:#ffffff;font-size:16px;margin:25px 0 15px 0;'>Produto {i+1}</h4>", unsafe_allow_html=True)
                 col1, col2, col3 = st.columns(3)
-                nome = col1.text_input(f"Nome {i+1}", value=nome_atual)
-                preco = col2.number_input(f"Preço {i+1}", value=preco_atual)
-                desc = col3.text_input(f"Descrição {i+1}", value=desc_atual)
+                nome = col1.text_input(f"Nome", value=nome_atual, key=f"prod_nome_{i}")
+                preco = col2.number_input(f"Preço R$", value=preco_atual, key=f"prod_preco_{i}")
+                desc = col3.text_input(f"Descrição", value=desc_atual, key=f"prod_desc_{i}")
                 novos_produtos.append({"nome": nome, "preco": preco, "descricao": desc})
 
-            if st.form_submit_button("SALVAR PRODUTOS"):
+            if st.form_submit_button("SALVAR PRODUTOS", use_container_width=True):
                 salvar_produtos_loja(novos_produtos)
-                st.success("Produtos salvos!")
+                st.success("Produtos salvos com sucesso!")
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # EDITAR GOLPES
     elif st.session_state.admin_page == "Golpes":
-        st.subheader("Editar 25 Golpes por Graduação")
-        graduacao_selecionada = st.selectbox("Selecione a Graduação", GRADUACOES_CAPOEIRA)
+        st.markdown('<div class="admin-card">', unsafe_allow_html=True)
+        st.markdown('<h3 class="section-title">25 Golpes por Graduação</h3>', unsafe_allow_html=True)
+
+        graduacao_selecionada = st.selectbox("Selecione a Graduação para Editar", GRADUACOES_CAPOEIRA)
         golpes = obter_golpes_por_graduacao(graduacao_selecionada)
 
         with st.form(f"form_golpes_{graduacao_selecionada}"):
@@ -316,18 +418,21 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
             for i in range(25):
                 nome_atual = golpes[i]["nome"] if i < len(golpes) else f"Golpe {i+1}"
                 desc_atual = golpes[i]["descricao"] if i < len(golpes) else ""
-                col1, col2 = st.columns(2)
+                col1, col2 = st.columns([3,5])
                 nome = col1.text_input(f"Golpe {i+1}", value=nome_atual, key=f"golpe_nome_{i}")
-                desc = col2.text_input(f"Descrição {i+1}", value=desc_atual, key=f"golpe_desc_{i}")
+                desc = col2.text_input(f"Descrição", value=desc_atual, key=f"golpe_desc_{i}")
                 novos_golpes.append({"nome": nome, "descricao": desc})
 
-            if st.form_submit_button("SALVAR 25 GOLPES"):
+            if st.form_submit_button(f"SALVAR 25 GOLPES - {graduacao_selecionada}", use_container_width=True):
                 salvar_golpes_por_graduacao(graduacao_selecionada, novos_golpes)
                 st.success(f"Golpes salvos para {graduacao_selecionada}")
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # GERENCIAR ALUNOS
     elif st.session_state.admin_page == "Alunos":
-        st.subheader("Gerenciar Alunos")
+        st.markdown('<div class="admin-card">', unsafe_allow_html=True)
+        st.markdown('<h3 class="section-title">Gerenciar Alunos</h3>', unsafe_allow_html=True)
+
         alunos = list(db.collection('alunos').stream())
         alunos_lista = []
         for aluno in alunos:
@@ -338,63 +443,77 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
 
         if alunos_lista:
             df = pd.DataFrame(alunos_lista)
-            st.dataframe(df[['nome', 'email', 'graduacao', 'status']])
+            st.dataframe(df[['nome', 'email', 'graduacao', 'status', 'telefone']], use_container_width=True)
 
-            st.subheader("Alunos Pendentes")
+            st.markdown('<h4 class="section-title" style="font-size:24px;margin:50px 0 20px 0;">Alunos Pendentes de Aprovação</h4>', unsafe_allow_html=True)
             pendentes = [a for a in alunos_lista if a['status'] == 'pendente']
-            for aluno in pendentes:
-                col1, col2 = st.columns([4,1])
-                col1.write(f"{aluno['nome']} - {aluno['graduacao']}")
-                if col2.button("APROVAR", key=f"aprov_{aluno['email']}"):
-                    aprovar_aluno(aluno['email'])
-                    st.rerun()
+            if pendentes:
+                for aluno in pendentes:
+                    col1, col2 = st.columns([5,1])
+                    col1.markdown(f'<div class="admin-card" style="margin:15px 0;padding:25px;"><strong>{aluno["nome"]}</strong> — {aluno["graduacao"]}<br>{aluno["email"]}</div>', unsafe_allow_html=True)
+                    if col2.button("APROVAR", key=f"aprov_{aluno['email']}"):
+                        aprovar_aluno(aluno['email'])
+                        st.success(f"{aluno['nome']} aprovado!")
+                        st.rerun()
+            else:
+                st.info("Nenhum aluno pendente no momento")
         else:
-            st.info("Nenhum aluno cadastrado")
+            st.info("Nenhum capoeirista cadastrado")
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # CONFIGURAÇÕES
     elif st.session_state.admin_page == "Configurações":
-        st.subheader("Configurações Gerais")
+        st.markdown('<div class="admin-card">', unsafe_allow_html=True)
+        st.markdown('<h3 class="section-title">Configurações Gerais</h3>', unsafe_allow_html=True)
+
         with st.form("config_form"):
             nova_taxa = st.number_input("Taxa de Cadastro R$", value=float(obter_taxa_cadastro()))
             nova_chave_pix = st.text_input("Chave PIX", value=obter_chave_pix())
-            if st.form_submit_button("SALVAR CONFIGURAÇÕES"):
+            if st.form_submit_button("SALVAR CONFIGURAÇÕES", use_container_width=True):
                 db.collection('config').document('taxa_cadastro').set({'valor': nova_taxa})
                 db.collection('config').document('chave_pix').set({'valor': nova_chave_pix})
-                st.success("Configurações salvas!")
+                st.success("Configurações salvas com sucesso!")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-# PORTAL DO ALUNO
+# PORTAL DO ALUNO ESTILIZADO
 elif st.session_state.logged_in and not st.session_state.must_change_password and st.session_state.user_data.get('role') == 'aluno':
-    st.header(f"Portal do Capoeirista - {st.session_state.user_data['nome']}")
-    st.write(f"Graduação: {st.session_state.user_data['graduacao']}")
+    st.markdown(f'<h1 class="admin-title">{st.session_state.user_data["nome"]}</h1>', unsafe_allow_html=True)
+    st.markdown(f'<p class="admin-subtitle">Graduação: {st.session_state.user_data["graduacao"]}</p>', unsafe_allow_html=True)
 
-    st.subheader("Meus Golpes")
+    st.markdown('<div class="admin-card">', unsafe_allow_html=True)
+    st.markdown('<h3 class="section-title">Meus Golpes - Marcar Progresso</h3>', unsafe_allow_html=True)
+
     golpes = obter_golpes_por_graduacao(st.session_state.user_data["graduacao"])
     progresso = st.session_state.user_data.get('progresso_golpes', {}).get(st.session_state.user_data["graduacao"], [False] * 25)
 
     with st.form("form_progresso"):
         for i, golpe in enumerate(golpes):
-            checked = st.checkbox(f"{golpe['nome']} - {golpe['descricao']}", value=progresso[i] if i < len(progresso) else False)
+            checked = st.checkbox(f"{golpe['nome']} - {golpe['descricao']}", value=progresso[i] if i < len(progresso) else False, key=f"prog_{i}")
             if i < len(progresso):
                 progresso[i] = checked
 
-        if st.form_submit_button("SALVAR PROGRESSO"):
+        if st.form_submit_button("SALVAR PROGRESSO", use_container_width=True):
             db.collection('alunos').document(st.session_state.user_data['email']).update({
                 f'progresso_golpes.{st.session_state.user_data["graduacao"]}': progresso
             })
             st.success("Progresso salvo!")
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    if st.button("SAIR"):
+    if st.button("SAIR", use_container_width=True):
         logout()
 
-# TROCA DE SENHA OBRIGATÓRIA
+# TROCA DE SENHA OBRIGATÓRIA ESTILIZADA
 elif st.session_state.must_change_password:
-    st.title("Primeiro Acesso - Trocar Senha")
+    st.markdown('<div style="max-width:600px;margin:100px auto;padding:60px 50px;">', unsafe_allow_html=True)
+    st.markdown('<h1 class="admin-title">Primeiro Acesso</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="admin-subtitle">Defina sua senha de segurança</p>', unsafe_allow_html=True)
+
     with st.form("trocar_senha_form"):
         senha_atual = st.text_input("Senha Atual", type="password")
         nova_senha = st.text_input("Nova Senha", type="password")
         confirmar_senha = st.text_input("Confirmar Nova Senha", type="password")
-        submitted = st.form_submit_button("CONFIRMAR")
+        submitted = st.form_submit_button("CONFIRMAR", use_container_width=True)
 
         if submitted:
             if nova_senha!= confirmar_senha:
@@ -415,46 +534,53 @@ elif st.session_state.must_change_password:
                     st.rerun()
                 else:
                     st.error("Senha atual incorreta")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# CADASTRO
+# CADASTRO ESTILIZADO
 elif st.session_state.show_cadastro:
-    st.title("Inscrição JDA Piçarras")
+    st.markdown('<div style="max-width:700px;margin:80px auto;padding:60px 50px;">', unsafe_allow_html=True)
+    st.markdown('<h1 class="admin-title">Inscrição JDA Piçarras</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="admin-subtitle">Junte-se à roda da JDA Piçarras</p>', unsafe_allow_html=True)
+
     with st.form("cadastro_form"):
         nome = st.text_input("Nome Completo")
         email = st.text_input("Email")
         telefone = st.text_input("Telefone")
         graduacao = st.selectbox("Graduação Atual", GRADUACOES_CAPOEIRA)
 
-        st.write(f"**Taxa de Cadastro: R$ {obter_taxa_cadastro():.2f}**")
-        st.write(f"**Chave PIX: {obter_chave_pix()}**")
+        st.markdown('<div class="admin-card">', unsafe_allow_html=True)
+        st.markdown(f'<h4 style="color:#00ff88;font-family:Playfair Display;font-size:32px;text-align:center;margin:0;">R$ {obter_taxa_cadastro():.2f}</h4>', unsafe_allow_html=True)
+        st.markdown(f'<p style="color:rgba(255,255,255,0.6);text-align:center;font-size:12px;letter-spacing:2px;">TAXA DE CADASTRO • PIX: {obter_chave_pix()}</p>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        taxa_paga = st.checkbox("Taxa paga via PIX")
+        taxa_paga = st.checkbox("Taxa de cadastro paga via PIX")
         mensalidade_paga = st.checkbox("Mensalidade paga")
 
-        submitted = st.form_submit_button("FINALIZAR INSCRIÇÃO")
+        submitted = st.form_submit_button("FINALIZAR INSCRIÇÃO", use_container_width=True)
         if submitted:
             if nome and email and telefone:
                 cadastrar_aluno(nome, email, graduacao, telefone, 1 if mensalidade_paga else 0, 1 if taxa_paga else 0)
-                st.success("Inscrição realizada! Aguarde aprovação do mestre.")
+                st.success("Inscrição realizada! Axé! Aguarde aprovação do mestre.")
                 st.session_state.show_cadastro = False
                 st.rerun()
             else:
                 st.error("Preencha todos os campos")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("VOLTAR"):
-        st.session_state.show_cadastro = False
-        st.rerun()
-
-# LOGIN ALUNO
+# LOGIN ALUNO ESTILIZADO
 elif st.session_state.show_student_portal and not st.session_state.logged_in:
-    st.title("Portal do Capoeirista")
+    st.markdown('<div style="max-width:500px;margin:100px auto;padding:60px 50px;">', unsafe_allow_html=True)
+    st.markdown('<h1 class="admin-title">Portal do Capoeirista</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="admin-subtitle">Área do Aluno</p>', unsafe_allow_html=True)
+
     with st.form("login_form_aluno"):
         email = st.text_input("Email")
         senha = st.text_input("Senha", type="password")
-        submitted = st.form_submit_button("ENTRAR")
+        submitted = st.form_submit_button("ENTRAR", use_container_width=True)
         if submitted:
             login_aluno(email, senha)
 
-    if st.button("VOLTAR"):
+    if st.button("VOLTAR", use_container_width=True):
         st.session_state.show_student_portal = False
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
