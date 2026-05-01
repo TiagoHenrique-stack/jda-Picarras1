@@ -7,11 +7,18 @@ import pandas as pd
 
 st.set_page_config(layout="wide", page_title="JDA PIÇARRAS - Painel Mestre", initial_sidebar_state="expanded")
 
-# === INICIALIZAÇÃO DO FIREBASE COM ARQUIVO JSON ===
+# === INICIALIZAÇÃO DO FIREBASE - CLOUD OU LOCAL ===
 @st.cache_resource
 def init_firebase():
     try:
-        cred = credentials.Certificate("firebase_key.json")
+        # SE ESTIVER NO STREAMLIT CLOUD - USA SECRETS
+        if "firebase_credentials" in st.secrets:
+            cred_dict = dict(st.secrets["firebase_credentials"])
+            cred = credentials.Certificate(cred_dict)
+        # SE ESTIVER NO PC LOCAL - USA ARQUIVO JSON
+        else:
+            cred = credentials.Certificate("firebase_key.json")
+
         firebase_admin.initialize_app(cred, {
             'storageBucket': 'jda-picarras1.appspot.com'
         })
@@ -429,7 +436,6 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
             if st.button("🚪 SAIR", use_container_width=True):
                 logout()
     else:
-        # Sidebar fechada - espaço vazio
         pass
 
     # HEADER DO PAINEL
