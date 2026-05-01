@@ -7,18 +7,20 @@ import pandas as pd
 
 st.set_page_config(layout="wide", page_title="JDA PIÇARRAS - Painel Mestre", initial_sidebar_state="expanded")
 
-# Inicialização do Firebase
-if not _apps:
+# === INICIALIZAÇÃO DO FIREBASE COM ARQUIVO JSON ===
+@st.cache_resource
+def init_firebase():
     try:
-        cred = credentials.Certificate(dict(st.secrets['firebase_credentials']))
-        firebase_admin.initialize_app(cred, {'storageBucket': 'jda-picarras1.appspot.com'})
+        cred = credentials.Certificate("firebase_key.json")
+        firebase_admin.initialize_app(cred, {
+            'storageBucket': 'jda-picarras1.appspot.com'
+        })
+        return firestore.client()
     except Exception as e:
-        st.error(f"ERRO FIREBASE: {e}")
+        st.error(f"ERRO FIREBASE DETALHADO: {e}")
         st.stop()
-else:
-    app = get_app()
 
-db = firestore.client()
+db = init_firebase()
 
 def hash_senha(senha):
     return hashlib.sha256(senha.encode()).hexdigest()
@@ -106,7 +108,7 @@ def deletar_aluno(email):
     return True
 
 def login_aluno(email, senha):
-    hash_senha = hashlib.sha256(senha.encode()).hexdigest()
+    hash_senha_calc = hashlib.sha256(senha.encode()).hexdigest()
     doc = db.collection('alunos').document(email).get()
 
     if not doc.exists:
@@ -115,7 +117,7 @@ def login_aluno(email, senha):
 
     dados = doc.to_dict()
 
-    if dados.get('senha') == hash_senha and dados.get('status') == 'ativo':
+    if dados.get('senha') == hash_senha_calc and dados.get('status') == 'ativo':
         st.session_state.logged_in = True
         st.session_state.user_data = dados
         if dados.get('primeiro_acesso', False):
@@ -144,7 +146,7 @@ GRADUACOES_CAPOEIRA = [
     "Preta 3º Cordão", "Preta 4º Cordão", "Mestre"
 ]
 
-# Estado da sessão
+# ESTADO DA SESSÃO - SIDEBAR ABERTA NO PC, FECHADA NO MOBILE
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'user_data' not in st.session_state:
@@ -346,9 +348,14 @@ header, #MainMenu, footer {visibility: hidden!important;}
 
 /* RESPONSIVO MOBILE */
 @media (max-width: 768px) {
- .title-cardinal {font-size: 48px!important; margin: 60px 0 15px 0!important;}
- .horario-titulo {font-size: 28px!important; margin: 50px 0 20px 0!important;}
- .horario-item {font-size: 16px!important;}
+.title-cardinal {font-size: 48px!important; margin: 60px 0 15px 0!important;}
+.horario-titulo {font-size: 28px!important; margin: 50px 0 20px 0!important;}
+.horario-item {font-size: 16px!important;}
+.sidebar-toggle {
+    position: fixed!important;
+    top: 15px!important;
+    left: 15px!important;
+    z-index: 9999!important;
 }
 </style>
 """, unsafe_allow_html=True)# BOTÃO TOGGLE SIDEBAR - VISÍVEL SEMPRE NO ADMIN
@@ -405,28 +412,28 @@ elif st.session_state.show_admin and not st.session_state.logged_in:
 # PAINEL ADMIN LOGADO
 elif st.session_state.logged_in and not st.session_state.must_change_password and st.session_state.user_data.get('role') == 'admin':
 
-    # SIDEBAR CONTROLÁVEL - SEMPRE RENDERIZA
-    with st.sidebar:
-        st.title("PAINEL MESTRE")
-        menu_opcoes = [
-            "📊 Dashboard",
-            "⏰ Horários",
-            "🛍️ Loja",
-            "🥋 Golpes",
-            "👥 Alunos",
-            "⚙️ Configurações"
-        ]
-
-        if st.session_state.sidebar_visible:
+    # SIDEBAR CONDICIONAL - ABERTA NO PC, FECHADA NO MOBILE
+    if st.session_state.sidebar_visible:
+        with st.sidebar:
+            st.title("PAINEL MESTRE")
+            menu_opcoes = [
+                "📊 Dashboard",
+                "⏰ Horários",
+                "🛍️ Loja",
+                "🥋 Golpes",
+                "👥 Alunos",
+                "⚙️ Configurações"
+            ]
             st.session_state.admin_page = st.radio("Navegação", menu_opcoes, index=0)
             st.divider()
             if st.button("🚪 SAIR", use_container_width=True):
                 logout()
-        else:
-            st.write("Menu oculto")
+    else:
+        # Sidebar fechada - espaço vazio
+        pass
 
-    # HEADER DO PAINEL - LINHA CORRIGIDA
-    pagina_atual = st.session_state.admin_page.split(' ', 1)[1] if ' ' in st.session_state.admin_page else st.session_state.admin_page
+    # HEADER DO PAINEL
+    pagina_atual = st.session_state.admin_page.split(' ', 1)[1] if ' in st.session_state.admin_page' else st.session_state.admin_page
     st.markdown(f'<h1 class="admin-title">{pagina_atual}</h1>', unsafe_allow_html=True)
     st.markdown(f'<p class="admin-subtitle">Bem-vindo, {st.session_state.user_data["nome"]}</p>', unsafe_allow_html=True)
 
@@ -751,13 +758,13 @@ elif st.session_state.must_change_password:
                         'primeiro_acesso': False
                     })
                     st.session_state.must_change_password = False
-                    st.success("Senha alterada")
+                    st.success("Senha alterada com sucesso!")
                     st.rerun()
                 else:
                     st.error("Senha atual incorreta")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# CADASTRO
+# CADASTRO PÚBLICO
 elif st.session_state.show_cadastro:
     st.markdown('<div style="max-width:700px;margin:80px auto;padding:60px 50px;">', unsafe_allow_html=True)
     st.markdown('<h1 class="admin-title">Inscrição JDA Piçarras</h1>', unsafe_allow_html=True)
