@@ -91,10 +91,10 @@ def cadastrar_aluno(nome, email, graduacao, telefone, paga_mensalidade, taxa_cad
     senha_temp = hash_senha("123456")
     aluno_data = {
         'nome': nome,
-        'email': email,
+        'email': email.strip(),
         'senha': senha_temp,
         'graduacao': graduacao,
-        'telefone': telefone,
+        'telefone': telefone.strip(),
         'paga_mensalidade': paga_mensalidade,
         'taxa_cadastro_paga': taxa_cadastro_paga,
         'role': 'aluno',
@@ -103,7 +103,7 @@ def cadastrar_aluno(nome, email, graduacao, telefone, paga_mensalidade, taxa_cad
         'data_cadastro': datetime.now(),
         'progresso_golpes': {}
     }
-    db.collection('alunos').document(email).set(aluno_data)
+    db.collection('alunos').document(email.strip()).set(aluno_data)
     return True
 
 def aprovar_aluno(email):
@@ -115,25 +115,41 @@ def deletar_aluno(email):
     return True
 
 def login_aluno(email, senha):
-    hash_senha_calc = hashlib.sha256(senha.encode()).hexdigest()
+    email = email.strip()
+    hash_senha_calc = hashlib.sha256(senha.strip().encode()).hexdigest()
     doc = db.collection('alunos').document(email).get()
 
     if not doc.exists:
-        st.error("Credenciais inválidas")
+        st.error(f"Usuário {email} não encontrado no Firebase")
         return False
 
     dados = doc.to_dict()
 
-    if dados.get('senha') == hash_senha_calc and dados.get('status') == 'ativo':
-        st.session_state.logged_in = True
-        st.session_state.user_data = dados
-        if dados.get('primeiro_acesso', False):
-            st.session_state.must_change_password = True
-        st.rerun()
-        return True
-    else:
-        st.error("Credenciais inválidas ou usuário inativo")
+    if dados.get('senha')!= hash_senha_calc:
+        st.error("Senha incorreta")
         return False
+
+    if dados.get('status')!= 'ativo':
+        st.error("Usuário inativo. Peça ao mestre para aprovar seu cadastro.")
+        return False
+
+    if dados.get('role') not in ['admin', 'aluno']:
+        st.error(f"Role inválida: {dados.get('role')}")
+        return False
+
+    # LOGIN OK
+    st.session_state.logged_in = True
+    st.session_state.user_data = dados
+
+    if dados.get('primeiro_acesso', False):
+        st.session_state.must_change_password = True
+        st.info("Primeiro acesso. Você precisa trocar a senha.")
+    else:
+        st.session_state.must_change_password = False
+
+    st.success(f"Login realizado como {dados.get('role')}!")
+    st.rerun()
+    return True
 
 def logout():
     for key in list(st.session_state.keys()):
@@ -405,8 +421,8 @@ elif st.session_state.show_admin and not st.session_state.logged_in:
     st.markdown('<p class="admin-subtitle">Acesso Restrito</p>', unsafe_allow_html=True)
 
     with st.form("admin_login_form"):
-        email = st.text_input("Email Admin")
-        senha = st.text_input("Senha Admin", type="password")
+        email = st.text_input("Email Admin").strip()
+        senha = st.text_input("Senha Admin", type="password").strip()
         submitted = st.form_submit_button("ENTRAR", use_container_width=True)
         if submitted:
             login_aluno(email, senha)
@@ -439,7 +455,7 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
         pass
 
     # HEADER DO PAINEL
-    pagina_atual = st.session_state.admin_page.split(' ', 1)[1] if ' in st.session_state.admin_page' else st.session_state.admin_page
+    pagina_atual = st.session_state.admin_page.split(' ', 1)[1] if '' in st.session_state.admin_page else st.session_state.admin_page
     st.markdown(f'<h1 class="admin-title">{pagina_atual}</h1>', unsafe_allow_html=True)
     st.markdown(f'<p class="admin-subtitle">Bem-vindo, {st.session_state.user_data["nome"]}</p>', unsafe_allow_html=True)
 
@@ -744,9 +760,9 @@ elif st.session_state.must_change_password:
     st.markdown('<p class="admin-subtitle">Defina sua senha de segurança</p>', unsafe_allow_html=True)
 
     with st.form("trocar_senha_form"):
-        senha_atual = st.text_input("Senha Atual", type="password")
-        nova_senha = st.text_input("Nova Senha", type="password")
-        confirmar_senha = st.text_input("Confirmar Nova Senha", type="password")
+        senha_atual = st.text_input("Senha Atual", type="password").strip()
+        nova_senha = st.text_input("Nova Senha", type="password").strip()
+        confirmar_senha = st.text_input("Confirmar Nova Senha", type="password").strip()
         submitted = st.form_submit_button("CONFIRMAR", use_container_width=True)
 
         if submitted:
@@ -777,9 +793,9 @@ elif st.session_state.show_cadastro:
     st.markdown('<p class="admin-subtitle">Junte-se à roda da JDA Piçarras</p>', unsafe_allow_html=True)
 
     with st.form("cadastro_form"):
-        nome = st.text_input("Nome Completo")
-        email = st.text_input("Email")
-        telefone = st.text_input("Telefone")
+        nome = st.text_input("Nome Completo").strip()
+        email = st.text_input("Email").strip()
+        telefone = st.text_input("Telefone").strip()
         graduacao = st.selectbox("Graduação Atual", GRADUACOES_CAPOEIRA)
 
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
@@ -812,8 +828,8 @@ elif st.session_state.show_student_portal and not st.session_state.logged_in:
     st.markdown('<p class="admin-subtitle">Área do Aluno</p>', unsafe_allow_html=True)
 
     with st.form("login_form_aluno"):
-        email = st.text_input("Email")
-        senha = st.text_input("Senha", type="password")
+        email = st.text_input("Email").strip()
+        senha = st.text_input("Senha", type="password").strip()
         submitted = st.form_submit_button("ENTRAR", use_container_width=True)
         if submitted:
             login_aluno(email, senha)
