@@ -20,7 +20,7 @@ def init_firebase():
             cred = credentials.Certificate("firebase_key.json")
 
         firebase_admin.initialize_app(cred, {
-            'storageBucket': 'jda-picarras1.appspot.com'
+            'storageBucket': 'jda-picarras.appspot.com' # SEM O 1
         })
         return firestore.client()
     except Exception as e:
@@ -120,7 +120,7 @@ def login_aluno(email, senha):
     doc = db.collection('alunos').document(email).get()
 
     if not doc.exists:
-        st.error(f"Usuário {email} não encontrado no Firebase")
+        st.error(f"Usuário {email} não encontrado")
         return False
 
     dados = doc.to_dict()
@@ -169,7 +169,7 @@ GRADUACOES_CAPOEIRA = [
     "Preta 3º Cordão", "Preta 4º Cordão", "Mestre"
 ]
 
-# ESTADO DA SESSÃO - SIDEBAR ABERTA NO PC, FECHADA NO MOBILE
+# ESTADO DA SESSÃO
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'user_data' not in st.session_state:
@@ -389,7 +389,6 @@ if st.session_state.logged_in and st.session_state.user_data.get('role') == 'adm
 # TELA INICIAL PÚBLICA
 if not st.session_state.logged_in and not st.session_state.show_admin and not st.session_state.show_student_portal and not st.session_state.show_cadastro:
 
-    # CONTAINER CENTRALIZADO
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown('<h1 class="title-cardinal">JDA PIÇARRAS</h1>', unsafe_allow_html=True)
@@ -405,7 +404,6 @@ if not st.session_state.logged_in and not st.session_state.show_admin and not st
                 st.session_state.show_cadastro = True
                 st.rerun()
 
-        # HORÁRIO DE TREINOS CENTRALIZADO E VERDE NEON
         st.markdown('<h2 class="horario-titulo">Horário de Treinos</h2>', unsafe_allow_html=True)
         horarios = obter_horarios()
         if horarios:
@@ -435,7 +433,6 @@ elif st.session_state.show_admin and not st.session_state.logged_in:
 # PAINEL ADMIN LOGADO
 elif st.session_state.logged_in and not st.session_state.must_change_password and st.session_state.user_data.get('role') == 'admin':
 
-    # SIDEBAR CONDICIONAL - ABERTA NO PC, FECHADA NO MOBILE
     if st.session_state.sidebar_visible:
         with st.sidebar:
             st.title("PAINEL MESTRE")
@@ -451,10 +448,7 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
             st.divider()
             if st.button("🚪 SAIR", use_container_width=True):
                 logout()
-    else:
-        pass
 
-    # HEADER DO PAINEL
     pagina_atual = st.session_state.admin_page.split(' ', 1)[1] if '' in st.session_state.admin_page else st.session_state.admin_page
     st.markdown(f'<h1 class="admin-title">{pagina_atual}</h1>', unsafe_allow_html=True)
     st.markdown(f'<p class="admin-subtitle">Bem-vindo, {st.session_state.user_data["nome"]}</p>', unsafe_allow_html=True)
@@ -480,12 +474,11 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
             st.metric("Pendentes", alunos_pendentes)
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # HORÁRIOS - ADICIONAR + LISTA + EDITAR + EXCLUIR
+    # HORÁRIOS
     elif st.session_state.admin_page == "⏰ Horários":
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
         st.markdown('<h3 class="section-title">Gerenciar Horários</h3>', unsafe_allow_html=True)
 
-        # FORM ADICIONAR/EDITAR
         if st.session_state.edit_type == "horario" and st.session_state.edit_index is not None:
             horarios = obter_horarios()
             horario_edit = horarios[st.session_state.edit_index]
@@ -521,7 +514,6 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
                     else:
                         st.error("Preencha todos os campos")
 
-        # LISTA DE HORÁRIOS
         st.markdown('<h3 class="section-title" style="font-size:24px;margin:50px 0 20px 0;">Horários Cadastrados</h3>', unsafe_allow_html=True)
         horarios = obter_horarios()
         if horarios:
@@ -542,12 +534,11 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
             st.info("Nenhum horário cadastrado")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # LOJA - ADICIONAR + LISTA + EDITAR + EXCLUIR
+    # LOJA
     elif st.session_state.admin_page == "🛍️ Loja":
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
         st.markdown('<h3 class="section-title">Gerenciar Produtos</h3>', unsafe_allow_html=True)
 
-        # FORM ADICIONAR/EDITAR
         if st.session_state.edit_type == "produto" and st.session_state.edit_index is not None:
             produtos = obter_produtos_loja()
             produto_edit = produtos[st.session_state.edit_index]
@@ -585,7 +576,6 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
                     else:
                         st.error("Preencha nome e preço")
 
-        # LISTA DE PRODUTOS
         st.markdown('<h3 class="section-title" style="font-size:24px;margin:50px 0 20px 0;">Produtos Cadastrados</h3>', unsafe_allow_html=True)
         produtos = obter_produtos_loja()
         if produtos:
@@ -608,14 +598,13 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
             st.info("Nenhum produto cadastrado")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # GOLPES - ADICIONAR + LISTA + EDITAR + EXCLUIR
+    # GOLPES
     elif st.session_state.admin_page == "🥋 Golpes":
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
         st.markdown('<h3 class="section-title">Gerenciar Golpes por Graduação</h3>', unsafe_allow_html=True)
 
         graduacao_selecionada = st.selectbox("Selecione a Graduação", GRADUACOES_CAPOEIRA, key="select_grad_golpes")
 
-        # FORM ADICIONAR/EDITAR GOLPE
         if st.session_state.edit_type == "golpe" and st.session_state.edit_index is not None:
             golpes = obter_golpes_por_graduacao(graduacao_selecionada)
             golpe_edit = golpes[st.session_state.edit_index]
@@ -651,7 +640,6 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
                     else:
                         st.error("Preencha o nome do golpe")
 
-        # LISTA DE GOLPES
         st.markdown(f'<h3 class="section-title" style="font-size:24px;margin:50px 0 20px 0;">Golpes - {graduacao_selecionada}</h3>', unsafe_allow_html=True)
         golpes = obter_golpes_por_graduacao(graduacao_selecionada)
         if golpes:
@@ -672,7 +660,7 @@ elif st.session_state.logged_in and not st.session_state.must_change_password an
             st.info("Nenhum golpe cadastrado para esta graduação")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # ALUNOS - LISTA + APROVAR + EXCLUIR
+    # ALUNOS
     elif st.session_state.admin_page == "👥 Alunos":
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
         st.markdown('<h3 class="section-title">Gerenciar Alunos</h3>', unsafe_allow_html=True)
