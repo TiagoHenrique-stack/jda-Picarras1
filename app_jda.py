@@ -7,22 +7,27 @@ import pandas as pd
 
 st.set_page_config(layout="wide", page_title="JDA PIÇARRAS - Painel Mestre", initial_sidebar_state="expanded")
 
-# === INICIALIZAÇÃO DO FIREBASE - CLOUD OU LOCAL ===
+# === INICIALIZAÇÃO DO FIREBASE - SEGURA CONTRA DUPLA INICIALIZAÇÃO ===
 @st.cache_resource
 def init_firebase():
     try:
-        # SE ESTIVER NO STREAMLIT CLOUD - USA SECRETS
-        if "firebase_credentials" in st.secrets:
-            cred_dict = dict(st.secrets["firebase_credentials"])
-            cred = credentials.Certificate(cred_dict)
-        # SE ESTIVER NO PC LOCAL - USA ARQUIVO JSON
+        # Se já existe app, usa ele
+        if _apps:
+            app = get_app()
+        # Se não existe, cria
         else:
-            cred = credentials.Certificate("firebase_key.json")
+            # SE ESTIVER NO STREAMLIT CLOUD - USA SECRETS
+            if "firebase_credentials" in st.secrets:
+                cred_dict = dict(st.secrets["firebase_credentials"])
+                cred = credentials.Certificate(cred_dict)
+            # SE ESTIVER NO PC LOCAL - USA ARQUIVO JSON
+            else:
+                cred = credentials.Certificate("firebase_key.json")
 
-        firebase_admin.initialize_app(cred, {
-            'storageBucket': 'jda-picarras.appspot.com' # SEM O 1
-        })
-        return firestore.client()
+            app = firebase_admin.initialize_app(cred, {
+                'storageBucket': 'jda-picarras.appspot.com' # SEM O 1
+            })
+        return firestore.client(app=app)
     except Exception as e:
         st.error(f"ERRO FIREBASE DETALHADO: {e}")
         st.stop()
@@ -137,7 +142,6 @@ def login_aluno(email, senha):
         st.error(f"Role inválida: {dados.get('role')}")
         return False
 
-    # LOGIN OK
     st.session_state.logged_in = True
     st.session_state.user_data = dados
 
@@ -199,7 +203,6 @@ st.markdown("""
 header, #MainMenu, footer {visibility: hidden!important;}
 .stApp {background: #0a0a0a!important; font-family: 'Inter', sans-serif!important;}
 
-/* BOTÃO TOGGLE SIDEBAR */
 .sidebar-toggle {
     position: fixed;
     top: 20px;
@@ -215,14 +218,12 @@ header, #MainMenu, footer {visibility: hidden!important;}
     cursor: pointer!important;
 }
 
-/* SIDEBAR */
 [data-testid="stSidebar"] {
     background: #0f0f0f!important;
     border-right: 1px solid rgba(0, 255, 136, 0.3)!important;
     padding: 30px 20px!important;
 }
 
-/* PÁGINA INICIAL */
 .title-cardinal {
     font-family: 'Playfair Display', serif!important;
     font-size: 72px!important;
@@ -269,7 +270,6 @@ header, #MainMenu, footer {visibility: hidden!important;}
     text-shadow: 0 0 10px rgba(0, 255, 136, 0.3)!important;
 }
 
-/* CARDS */
 .admin-card {
     background: rgba(0, 255, 136, 0.03)!important;
     border: 1px solid rgba(0, 255, 136, 0.2)!important;
@@ -305,7 +305,6 @@ header, #MainMenu, footer {visibility: hidden!important;}
     margin: 0 0 25px 0!important;
 }
 
-/* BOTÕES */
 [data-testid="stButton"] > button {
     background: #000!important;
     border: 2px solid #00ff88!important;
@@ -327,7 +326,6 @@ header, #MainMenu, footer {visibility: hidden!important;}
     box-shadow: 0 8px 20px rgba(0, 255, 136, 0.3)!important;
 }
 
-/* INPUTS */
 .stTextInput > div > div > input,
 .stNumberInput > div > div > input,
 .stSelectbox > div > div > select,
@@ -345,7 +343,6 @@ header, #MainMenu, footer {visibility: hidden!important;}
     box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2)!important;
 }
 
-/* MÉTRICAS */
 [data-testid="stMetricValue"] {
     font-family: 'Playfair Display', serif!important;
     font-size: 48px!important;
@@ -360,7 +357,6 @@ header, #MainMenu, footer {visibility: hidden!important;}
     text-transform: uppercase!important;
 }
 
-/* ITEM LIST */
 .item-list {
     background: #1a1a1a!important;
     border: 1px solid rgba(0, 255, 136, 0.15)!important;
@@ -369,7 +365,6 @@ header, #MainMenu, footer {visibility: hidden!important;}
     border-radius: 4px!important;
 }
 
-/* RESPONSIVO MOBILE */
 @media (max-width: 768px) {
 .title-cardinal {font-size: 48px!important; margin: 60px 0 15px 0!important;}
 .horario-titulo {font-size: 28px!important; margin: 50px 0 20px 0!important;}
